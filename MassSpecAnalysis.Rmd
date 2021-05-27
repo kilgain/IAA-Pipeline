@@ -1,0 +1,522 @@
+---
+title: "Untitled"
+author: "Louis Connelly"
+date: "5/24/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+Read in Raw Mass Spec Data: mass, retention time (scan number 1 scan numnber is about 200ms 20 mins total) and intensity (abundance) for every signal positive/negative ion
+
+for first pass ignore charge.
+1-2 million lines per file.
+only need about five decimal points, helps find more matches and eliminate noise- still very precise.
+
+
+##```{r}
+##spike1.2 <- read.delim("extract_1in20_1_HILIC_1-2.rawoutput.txt", header = F, stringsAsFactors = T)
+##spike3.2 <- read.delim("extract_1in20_3_HILIC_3-2.rawoutput.txt", header = F, stringsAsFactors = T)
+##nospike1.1 <- read.delim("extract_nospike_HILIC_1-1.rawoutput.txt", header = F, stringsAsFactors = T)
+##nospike2.1 <- read.delim("extract_nospike_HILIC_2-1.rawoutput.txt", header = F, stringsAsFactors = T)
+##```
+
+##```{r}
+##head(spike1.2)
+##head(spike3.2)
+##head(nospike1.1)
+##head(nospike2.1)
+##```
+
+First Step: Removing the N/A values and subsetting columns we want
+```{r}
+metCounts <- list.files("C:/Users/Louis/Downloads/massSpec", full.names = T, recursive = T)
+megaTable =  data.frame(matrix(nrow = 0, ncol = 5))
+colnames(megaTable) = c("mass", "intensity", "scan", "polarity", "file")
+tableList = list()
+for(i in 1:length(metCounts))
+{
+  #clear the memory
+  gc()
+  file = metCounts[i]
+  table<- read.delim(file, sep = "\t", header = F)
+  print(i)
+  print(head(file))
+  TempTable =  table
+  #colnames(TempTable) = c("compound", "intensity", "scan", "polarity")
+  colnames(TempTable) = c("mass", "intensity", "scan", "polarity", "massspectype")
+  TempTable$'NA' = NULL
+  TempTable$file = i
+  megaTable = rbind(megaTable, TempTable)
+  #tableList[[i]] = TempTable
+}
+megaTable = as.data.frame(megaTable)
+#now, we have all of the files into one merged table that we can use to sort things with
+#sample peak: citrulline
+myMass = 176.1034
+#make the 
+ppmAllowed = .000005
+rangeAllowed = ppmAllowed*myMass
+mySubset = megaTable[megaTable$mass <  (myMass + rangeAllowed) &  megaTable$mass > (myMass - rangeAllowed),]
+plot(mySubset$mass, mySubset$intensity, xlab = "Mass", ylab = "Intensity", main = "Citrulline Signal in a Multiple Samples")
+#sample peak: citrulline standard
+myMass = 176.1034
+#make the 
+ppmAllowed = .000005
+rangeAllowed = ppmAllowed*myMass
+mySubset = megaTable[megaTable$mass <  (myMass + rangeAllowed) &  megaTable$mass > (myMass - rangeAllowed),]
+plot(mySubset$mass, mySubset$intensity, xlab = "Mass", ylab = "Intensity", main = "Citrulline Signal in Multiple Samples")
+```
+
+
+
+
+First pass idea to refine:
+sorgum only
+sorgum + yeast
+clear noise by subtracting out all masses that do not have a matching pair between samples (2 non-spike together, 2 spike together)
+idea: tons of noise
+probability of getting noise signal at same place in both samples is independent event
+-NEVER gonna happen
+write it in a loop
+look only for mass signals in BOTH samples
+
+First I am going to subset out files 1+2- they contain the spiked samples
+
+
+```{r}
+
+spikeCounts <- list.files("C:/Users/Louis/Downloads/massSpec/spike/", full.names = T)
+tableList = list()
+for(i in 1:length(spikeCounts))
+{
+  #clear memory
+  gc()
+  file = spikeCounts[i]
+  table<- read.delim(file, sep = "\t", header = F)
+  #removes duplicate masses that contain N/A's
+  table<- table[complete.cases(table), ]
+  colnames(table) = c("mass", "intensity", "scan", "polarity", "massspectype")
+  table$'NA' = NULL
+  tableList[[i]] = table
+  tableList[[i]]$mass <- round(tableList[[i]]$mass, digits=5)
+}
+
+for(i in 1:(length(tableList)-1)) {
+  gc()
+  if(i == 1) {
+    matrix1 <- tableList[[i]]
+  }
+  matrix2 <- tableList[[i+1]]
+  spikeConfirmedMasses <- intersect(matrix1$mass, matrix2$mass)
+  #matrix1 will also be used to store results
+  matrix1 <- tableList[[1]][tableList[[1]]$mass %in% spikeConfirmedMasses, ]
+}
+#transfer result to new dataframe as matrix1 gets reused
+spikeConfirmedResults <- matrix1[matrix1$mass %in% spikeConfirmedMasses, ]
+spikeConfirmedResultsSample2 <- matrix2[matrix2$mass %in% spikeConfirmedMasses, ]
+head(spikeConfirmedResults)
+length(tableList[[1]]$mass)
+length(tableList[[2]]$mass)
+length(spikeConfirmedResults$mass)
+length(spikeConfirmedResultsSample2$mass)
+length(spikeConfirmedMasses)
+```
+
+```{r}
+
+nospikeCounts <- list.files("C:/Users/Louis/Downloads/massSpec/nospike/", full.names = T)
+for(i in 1:length(nospikeCounts))
+{
+  #clear memory
+  gc()
+  file = nospikeCounts[i]
+  table<- read.delim(file, sep = "\t", header = F)
+  #removes duplicate masses that contain N/A's
+  table<- table[complete.cases(table), ]
+  colnames(table) = c("mass", "intensity", "scan", "polarity", "massspectype")
+  table$'NA' = NULL
+  tableList[[i]] = table
+  tableList[[i]]$mass <- round(tableList[[i]]$mass, digits=5)
+}
+
+for(i in 1:(length(tableList)-1)) {
+  gc()
+  if(i == 1) {
+    matrix1 <- tableList[[i]]
+  }
+  matrix2 <- tableList[[i+1]]
+  nospikeConfirmedMasses <- intersect(matrix1$mass, matrix2$mass)
+  #matrix1 will also be used to store results
+  matrix1 <- tableList[[1]][tableList[[1]]$mass %in% nospikeConfirmedMasses, ]
+}
+#transfer result to new dataframe as matrix1 gets reused
+nospikeConfirmedResults <- matrix1[matrix1$mass %in% nospikeConfirmedMasses, ]
+nospikeConfirmedResultsSample2 <- matrix2[matrix2$mass %in% nospikeConfirmedMasses, ]
+head(nospikeConfirmedResults)
+length(tableList[[1]]$mass)
+length(tableList[[2]]$mass)
+length(nospikeConfirmedResults$mass)
+length(nospikeConfirmedResultsSample2$mass)
+length(nospikeConfirmedMasses)
+```
+
+
+
+
+venn diagram is a good visualization
+intersection of two sets in number theory
+subtract one sample to other
+
+
+```{r}
+standardConfirmedMasses <- setdiff(spikeConfirmedResults$mass, nospikeConfirmedResults$mass)
+standardConfirmed <- spikeConfirmedResults[spikeConfirmedResults$mass %in% standardConfirmedMasses, ]
+sorghumConfirmedMasses <- intersect(spikeConfirmedResults$mass, nospikeConfirmedResults$mass)
+sorghumConfirmed <- nospikeConfirmedResults[spikeConfirmedResults$mass %in% sorghumConfirmedMasses, ]
+sorghumConfirmed2 <- nospikeConfirmedResults[nospikeConfirmedResults$mass %in% sorghumConfirmedMasses, ]
+```
+
+```{r}
+#number of elements in noise reduced spike
+length(spikeConfirmedResults$mass)
+
+#number of elements in noise reduced nonspike
+length(nospikeConfirmedResults$mass)
+
+#number of unique masses different between spike and nonspike... my guess is that there exists a good chunk of noise in this data still. Hence the further data collection of standards alone we talked about.
+length(standardConfirmedMasses)
+
+#number of unique masses shared by both spike and nonspike
+length(sorghumConfirmedMasses)
+
+#number of rows in standards
+length(standardConfirmed$mass)
+
+#number of rows in sorghum
+length(sorghumConfirmed$mass)
+length(sorghumConfirmed2$mass)
+```
+
+Questions: Why would we get more elements in the nonspike than spike? Guess: Dilution?
+
+It probably should not be the case that the spike and nonspike differ more than they are similar? I.e. why are there more standards than sorghum masses? Guess: Noise, all different masses get put there, meaning youre gonna get some noise signals if any exist!
+
+I noticed that even in the file sizes, the nonspike files are significantly larger (~190 v ~150 mb). This explains the difference in number of rows.
+
+
+Next Major Task: Collapsing Masses within 1 ppm of one another into a single value that represents one metabolite.
+start with standards
+```{r}
+centroidFxn= function(centroidTestBroad)
+{
+  centroidTestBroad = centroidTestBroad
+  #global remade table
+  myVecTest = vector()
+  myVecTest = centroidTestBroad[order(centroidTestBroad)]
+  #order all mass signals by mass
+  myVecTest <- myVecTest[order(myVecTest)]
+  oldMass = 0
+  centroidedMasses = vector()
+  #have a vector to store the potential masses in a region of interest
+  #don't take the mean until after you've passed through the the "gap"
+  #which is the space between signals which would indicate a new mass's gaussian 
+  #profile
+  #create a vector to hold all masses in a potential region of interest (ROI)
+  vecsForROI = vector()
+  for(i in 1:length(myVecTest))
+  {
+    mass = myVecTest[i]
+    newMass = mass
+    #determine allowable gap between signals as being 15 parts per million
+    ppmAllowed = .000001 * 3 * newMass
+    #if we are below the threshold for gaps between signals
+    #store the mass 
+    if(abs(newMass - oldMass) <= ppmAllowed)
+    {
+      if(length(vecsForROI) == 0)
+      {
+        #make sure that we inlcude the previous mass in the ROI vector to be averaged
+        vecsForROI = c(oldMass)
+        #make sure that we don't inclue the old mass ins the centroidedMasses as well!
+        centroidedMasses = centroidedMasses[-which(centroidedMasses == oldMass)]
+      }
+      vecsForROI = c(vecsForROI, mass)
+    }
+    #we've got a hit that's past the threshold
+    #take the average of all the masses in the ROI vector and append 
+    #it to a vector of all the fully centroided masses
+    if(abs(newMass - oldMass) > ppmAllowed || (i == 1))
+    {
+      #if the ROI vector has a bunch of masses ( > 1 ) to be centroided
+      #take the average of everything in the interval
+      if(length(vecsForROI) > 0)
+      {
+         #take the average of the ROI vector (vecsForROI) and append to the 
+         #vector of centroided masses
+         centroidedMasses = c(centroidedMasses,mean(vecsForROI))
+        #initialize with the first scan
+        vecsForROI = vector()
+      }
+      #if we have a standalone mass, it won't need to be centroided
+      #but it won't be a part of any other masses, so we'll just need to add 
+      #it to the vector of centroided masses
+      if(length(vecsForROI) == 0)
+      {
+        centroidedMasses = c(centroidedMasses,newMass)
+      }
+    }
+    #if it's the last entry we won't have chance to reset, so include it now
+    oldMass = newMass
+  }
+  return(centroidedMasses)
+}
+testcentroidFxn = c(176.1034, 176.1033,176.1032, 182.5)
+centroidFxn(testcentroidFxn)
+
+```
+
+
+`
+
+```{r}
+standardConfirmedMasses <- standardConfirmedMasses[order(standardConfirmedMasses)]
+spikeValidatedMasses <- centroidFxn(standardConfirmedMasses)
+nospikeValidatedMasses <- centroidFxn(sorghumConfirmedMasses)
+```
+
+
+```{r}
+head(spikeConfirmedResults$mass)
+```
+Next step: figure out how many of the validated masses are actually real
+choose 100 of the validated masses at random
+loop through the 100 and generate plots of signal vs mass and save as pdf
+
+```{r}
+set.seed(777624)
+oneHundredValidatedMasses <- sample(spikeValidatedMasses, 100)
+oneHundredValidatedMasses
+set.seed(NULL)
+```
+
+```{r}
+spikeCounts <- list.files("C:/Users/Louis/Downloads/massSpec/spike", full.names = T, recursive = T)
+spikeTable =  data.frame(matrix(nrow = 0, ncol = 6))
+colnames(spikeTable) = c("mass", "intensity", "scan", "polarity", "massspectype", "file")
+tableList = list()
+for(i in 1:length(spikeCounts))
+{
+  #clear the memory
+  gc()
+  file = spikeCounts[i]
+  table<- read.delim(file, sep = "\t", header = F)
+  table<- table[complete.cases(table), ]
+  print(i)
+  print(head(file))
+  TempTable =  table
+  colnames(TempTable) = c("mass", "intensity", "scan", "polarity", "massspectype")
+  TempTable$'NA' = NULL
+  TempTable$file = spikeCounts[i]
+  spikeTable = rbind(spikeTable, TempTable)
+}
+spikeTable = as.data.frame(spikeTable)
+```
+
+For 100 plots
+```{r}
+plots <- list()
+pdf(file = "C:/Users/Louis/OneDrive/Desktop/100Plots/100plots.pdf", width=8, height=5)
+for(i in 1:100){
+  myMass <- oneHundredValidatedMasses[i]
+  ppmAllowed = .000003
+  rangeAllowed = ppmAllowed*myMass
+  mySubset = spikeTable[spikeTable$mass <  (myMass + rangeAllowed) &  spikeTable$mass > (myMass - rangeAllowed),]
+  plot(mySubset$scan, mySubset$intensity, xlab = "Scan", ylab = "Intensity", main = paste("Retention Time for Mass",as.character(myMass)))
+}
+dev.off()
+
+```
+
+
+
+
+
+```{r}
+ generalizeWarping <- function(metabolitePlotFull)
+{
+  metabolitePlotFull = metabolitePlotFull
+  #for the reference for the t-test, use the sample with the 3rd most signal
+  #why?  sometimes the highest one can be an outlier/poor chromatography that 
+  #'smooshes' together signals
+  maxReference = count(metabolitePlotFull, file)[order(count(metabolitePlotFull, file)$n, decreasing = TRUE),][3,]$file
+  #this table will contain the alignment reference AND the aligned files for all
+  #files in each tertile
+  bothFull = data.frame(matrix(nrow = 0, ncol = length(colnames(metabolitePlotFull)) + 1 ))
+  #add a column with the scan adjusted RT's
+  colnames(bothFull) = c(colnames(metabolitePlotFull),"newRT")
+  #go through each tertile of the potential signal
+  #and subset by that tertile in order to run anovAlign
+  for(i in 1:3)
+  {
+    print(i)
+    print(" is the zone")
+    if(i == 1)
+    {
+      metabolitePlot = metabolitePlotFull[metabolitePlotFull$intensity < quantile(metabolitePlotFull$intensity, .25),]
+    }
+    if(i == 2)
+    {
+      #metabolitePlot = metabolitePlotFull[metabolitePlotFull$Intensity < quantile(metabolitePlotFull$Intensity, .75),]
+      metabolitePlot = metabolitePlotFull[metabolitePlotFull$intensity < quantile(metabolitePlotFull$intensity, .75) &metabolitePlotFull$intensity > quantile(metabolitePlotFull$intensity, .25)  ,]
+    }
+    if(i == 3)
+    {
+      metabolitePlot = metabolitePlotFull[metabolitePlotFull$intensity > quantile(metabolitePlotFull$intensity, .75),]
+    }
+    #for the tertile, pull out the signal belonging to the reference sample to be the reference sample
+    metabolitePlotSlice1 =  metabolitePlot[metabolitePlot$file == maxReference,]
+    #initialize the column that will contain the adjusted scan info
+    metabolitePlotSlice1$newRT = metabolitePlotSlice1$scan
+    #initialize the scan adjusted table, which will contain the original reference data
+    #as well as the scan adjust info for each file
+    both = metabolitePlotSlice1
+    #take out the top of the reference peak
+    metabolitePlotSlice1 = metabolitePlotSlice1[metabolitePlotSlice1$intensity > quantile(metabolitePlotSlice1$intensity, .75),]
+    for(i in 1:length(unique(metabolitePlot$file)))
+    {
+      print(i)
+      if(i != maxReference )
+      {
+        metabolitePlotSlice2 = metabolitePlot[metabolitePlot$file == unique(metabolitePlot$file)[i],]
+        metabolitePlotSlice2BeforeFilter = metabolitePlotSlice2
+        #take the top of the peak to compare to the reference sample as well
+        metabolitePlotSlice2 = metabolitePlotSlice2[metabolitePlotSlice2$intensity > quantile(metabolitePlotSlice2$intensity, .75),]
+        if(length(metabolitePlotSlice1$scan) > 2 & length(metabolitePlotSlice2$scan) > 2)
+        {
+          tTestShift = t.test(metabolitePlotSlice1$scan,metabolitePlotSlice2$scan)
+          metabolitePlotSlice2BeforeFilter$newRT = metabolitePlotSlice2BeforeFilter$scan + (tTestShift$estimate[1] - tTestShift$estimate[2]) 
+          both = rbind(both,  metabolitePlotSlice2BeforeFilter)
+        }
+      }
+    }
+    if(nrow(both) > 0)
+    {
+      bothFull = rbind(bothFull, both)
+    }
+  }
+  if(nrow(bothFull) < 1)
+  {
+    bothFull =  metabolitePlotFull
+  }
+  bothFull$scan = bothFull$newRT
+  bothFull$newRT = NULL
+  #return the adjusted table
+  return(bothFull)  
+ }
+```
+
+Push file to github
+
+What I have vs what the input file looks like
+```{r}
+mySubset
+table
+```
+
+
+
+
+
+```{r}
+for(i in 1:length(spikeValidatedMasses)) {
+  myMass <- oneHundredValidatedMasses[2]
+  ppmAllowed = .000003
+  rangeAllowed = ppmAllowed*myMass
+  mySubset = spikeTable[spikeTable$mass <  (myMass + rangeAllowed) &  spikeTable$mass > (myMass - rangeAllowed),]
+  mySubset <- mySubset[order(mySubset$file), ]
+  plot(mySubset$scan, mySubset$intensity, xlab = "Mass", ylab = "Intensity", main = "Signal for Mass 2")
+  plot(mySubset$mass, mySubset$intensity, xlab = "Mass", ylab = "Intensity", main = "Signal for Mass 2")
+}
+```
+
+
+
+```{r}
+whereToRead = "C:/Users/Louis/Downloads/182.12307merged.txt"
+table<- read.table(whereToRead, sep = "\t", header = TRUE)
+#make sure that the intensity column is numeric
+table$Intensity = as.numeric(table$Intensity)
+#replace any NA's with 0's
+table$Intensity[is.na(table$Intensity)] = 0
+#for now, we won't need the Mstype or the polarity info
+#if it is in the table
+table$Mstype = NULL
+table$polarity = NULL
+startPoints = vector()
+stopPoints = vector()
+colnames(table) = c("file", "compound", "intensity", "scan")
+tableOfAnovalignAjusted = colnames(table)
+vecOFMaxes = vector()
+table1Exclude = table
+#get the maximum 
+#iterate while the signal to noise ratio of a potential RT window is high enough
+#randonly sample 1000 points as background
+signalBackground = sum(table[sample(nrow(table),1000),]$Intensity)
+#initialize signalRatio as 7
+signalRatio = 7
+while(signalRatio > 5)
+{
+  print("going through again")
+  #clear out the front of the chromatogram which is known as the 'void'
+  table = table[table$scan > 200, ] 
+  #for each file in the tablem, we're going to get the scan with the maximum signal
+  for(i in 1:length(unique(table$file)))
+  {
+    print(i)
+    print(" is i")
+    fileLookup =  unique(table$file)[i]
+    subsetPlot = table[table$file == fileLookup ,]
+    myMax = subsetPlot[which.max(subsetPlot$intensity),]$scan
+    #get the scan with the max signal and store it in the vector
+    #in order to determine the parameter of the drift 
+    vecOFMaxes = c(vecOFMaxes, myMax)
+  }
+  #get the center of the drifting peaks
+  middleOfPeak = mean(vecOFMaxes)
+  #determine the range of the drift by the right and left hand extremes
+  peakSD = sd(vecOFMaxes)
+  rightHand = middleOfPeak + 2*peakSD 
+  leftHand = middleOfPeak - 2*peakSD 
+  #once we've determined the distribution of the top signals across the scans
+  #we've determined the region to be cleaned up via anovAlign
+  megaTableII = table[table$scan < rightHand & table$scan > leftHand,]
+  #plot the boundaries aka the green lines
+  
+  adjustedZone = generalizeWarping(megaTableII)
+  #run anovalign and get the adjusted region
+  tableOfAnovalignAjusted = rbind(tableOfAnovalignAjusted,adjustedZone)
+  #recalculate the signal to noise of the region
+  signalRegion = table[table$scan > leftHand & table$scan < rightHand, ]
+  signal= sum(signalRegion$Intensity)
+  #signal to noise ratio
+  signalRatio = signal / signalBackground
+  #exclude anything within this interval
+  intervalExclude = c(leftHand:rightHand)
+  print(intervalExclude)
+  print("is intervalExclude ")
+  #remove the interval
+  table1Exclude = table1Exclude[!(table1Exclude$scan %in% intervalExclude),]
+}
+```
+
+
+
+
+
+
