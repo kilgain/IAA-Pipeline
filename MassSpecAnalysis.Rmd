@@ -354,7 +354,7 @@ dev.off()
   #for the reference for the t-test, use the sample with the 3rd most signal
   #why?  sometimes the highest one can be an outlier/poor chromatography that 
   #'smooshes' together signals
-  maxReference = count(metabolitePlotFull, file)[order(count(metabolitePlotFull, file)$n, decreasing = TRUE),][3,]$file
+  maxReference = dplyr::count(metabolitePlotFull, file)[order(dplyr::count(metabolitePlotFull, file)$n, decreasing = TRUE),][3,]$file
   #this table will contain the alignment reference AND the aligned files for all
   #files in each tertile
   bothFull = data.frame(matrix(nrow = 0, ncol = length(colnames(metabolitePlotFull)) + 1 ))
@@ -364,8 +364,8 @@ dev.off()
   #and subset by that tertile in order to run anovAlign
   for(i in 1:3)
   {
-    print(i)
-    print(" is the zone")
+    #print(i)
+    #print(" is the zone")
     if(i == 1)
     {
       metabolitePlot = metabolitePlotFull[metabolitePlotFull$intensity < quantile(metabolitePlotFull$intensity, .25),]
@@ -390,7 +390,7 @@ dev.off()
     metabolitePlotSlice1 = metabolitePlotSlice1[metabolitePlotSlice1$intensity > quantile(metabolitePlotSlice1$intensity, .75),]
     for(i in 1:length(unique(metabolitePlot$file)))
     {
-      print(i)
+      #print(i)
       if(i != maxReference )
       {
         metabolitePlotSlice2 = metabolitePlot[metabolitePlot$file == unique(metabolitePlot$file)[i],]
@@ -440,83 +440,116 @@ for(i in 1:length(spikeValidatedMasses)) {
   rangeAllowed = ppmAllowed*myMass
   mySubset = spikeTable[spikeTable$mass <  (myMass + rangeAllowed) &  spikeTable$mass > (myMass - rangeAllowed),]
   mySubset <- mySubset[order(mySubset$file), ]
-  plot(mySubset$scan, mySubset$intensity, xlab = "Mass", ylab = "Intensity", main = "Signal for Mass 2")
-  plot(mySubset$mass, mySubset$intensity, xlab = "Mass", ylab = "Intensity", main = "Signal for Mass 2")
 }
 ```
 
 
-
+length(oneHundredValidatedMasses)
 ```{r}
-whereToRead = "C:/Users/Louis/Downloads/182.12307merged.txt"
-table<- read.table(whereToRead, sep = "\t", header = TRUE)
-#make sure that the intensity column is numeric
-table$Intensity = as.numeric(table$Intensity)
-#replace any NA's with 0's
-table$Intensity[is.na(table$Intensity)] = 0
-#for now, we won't need the Mstype or the polarity info
-#if it is in the table
-table$Mstype = NULL
-table$polarity = NULL
-startPoints = vector()
-stopPoints = vector()
-colnames(table) = c("file", "compound", "intensity", "scan")
-tableOfAnovalignAjusted = colnames(table)
-vecOFMaxes = vector()
-table1Exclude = table
-#get the maximum 
-#iterate while the signal to noise ratio of a potential RT window is high enough
-#randonly sample 1000 points as background
-signalBackground = sum(table[sample(nrow(table),1000),]$Intensity)
-#initialize signalRatio as 7
-signalRatio = 7
-while(signalRatio > 5)
-{
-  print("going through again")
-  #clear out the front of the chromatogram which is known as the 'void'
-  table = table[table$scan > 200, ] 
+pdf(file = "C:/Users/Louis/OneDrive/Desktop/100Plots/greenbars.pdf",
+    width = 8,
+    height = 5)
+for (i in 1:length(oneHundredValidatedMasses)) {
+  print(i)
+  myMass <- oneHundredValidatedMasses[i]
+  ppmAllowed = .000003
+  rangeAllowed = ppmAllowed * myMass
+  mySubset = spikeTable[spikeTable$mass <  (myMass + rangeAllowed) &
+                          spikeTable$mass > (myMass - rangeAllowed),]
+  mySubset <- mySubset[order(mySubset$file), ]
+  
+  #make sure that the intensity column is numeric
+  mySubset$intensity = as.numeric(mySubset$intensity)
+  #replace any NA's with 0's
+  mySubset$intensity[is.na(mySubset$intensity)] = 0
+  #for now, we won't need the Mstype or the polarity info
+  #if it is in the table
+  mySubset$polarity = NULL
+  mySubset$massspectype = NULL
+  startPoints = vector()
+  stopPoints = vector()
+  colnames(mySubset) = c("mass", "intensity", "scan", "file")
+  tableOfAnovalignAdjusted = colnames(mySubset)
+  vecOFMaxes = vector()
+  mySubset1Exclude = mySubset
+  #get the maximum
+  #iterate while the signal to noise ratio of a potential RT window is high enough
+  #randonly sample 1000 points as background- I want it to use same points for consistency's sake
+  set.seed(1235213)
+  signalBackground = mean(mySubset[sample(nrow(mySubset), 1500),]$intensity)
+  set.seed(NULL)
+  #initialize signalRatio as 7
+  signalRatio = 7
+  counter = 0
+  mySubset = mySubset[mySubset$scan > 200, ]
   #for each file in the tablem, we're going to get the scan with the maximum signal
-  for(i in 1:length(unique(table$file)))
+  for (i in 1:length(unique(mySubset$file)))
   {
-    print(i)
-    print(" is i")
-    fileLookup =  unique(table$file)[i]
-    subsetPlot = table[table$file == fileLookup ,]
+    #print(i)
+    #print(" is i")
+    fileLookup =  unique(mySubset$file)[i]
+    subsetPlot = mySubset[mySubset$file == fileLookup ,]
     myMax = subsetPlot[which.max(subsetPlot$intensity),]$scan
     #get the scan with the max signal and store it in the vector
-    #in order to determine the parameter of the drift 
+    #in order to determine the parameter of the drift
     vecOFMaxes = c(vecOFMaxes, myMax)
   }
   #get the center of the drifting peaks
   middleOfPeak = mean(vecOFMaxes)
   #determine the range of the drift by the right and left hand extremes
   peakSD = sd(vecOFMaxes)
-  rightHand = middleOfPeak + 2*peakSD 
-  leftHand = middleOfPeak - 2*peakSD 
-  #once we've determined the distribution of the top signals across the scans
-  #we've determined the region to be cleaned up via anovAlign
-  megaTableII = table[table$scan < rightHand & table$scan > leftHand,]
-  #plot the boundaries aka the green lines
-  
-  adjustedZone = generalizeWarping(megaTableII)
-  #run anovalign and get the adjusted region
-  tableOfAnovalignAjusted = rbind(tableOfAnovalignAjusted,adjustedZone)
-  #recalculate the signal to noise of the region
-  signalRegion = table[table$scan > leftHand & table$scan < rightHand, ]
-  signal= sum(signalRegion$Intensity)
-  #signal to noise ratio
-  signalRatio = signal / signalBackground
-  #exclude anything within this interval
-  intervalExclude = c(leftHand:rightHand)
-  print(intervalExclude)
-  print("is intervalExclude ")
-  #remove the interval
-  table1Exclude = table1Exclude[!(table1Exclude$scan %in% intervalExclude),]
+  while (signalRatio > 2.5)
+  {
+    #clear out the front of the chromatogram which is known as the 'void'
+    #for each file in the tablem, we're going to get the scan with the maximum signal
+    rightHand = middleOfPeak + (2 + .1 * counter) * peakSD
+    leftHand = middleOfPeak - (2 + .1 * counter) * peakSD
+    #once we've determined the distribution of the top signals across the scans
+    #we've determined the region to be cleaned up via anovAlign
+    megaTableII = mySubset[mySubset$scan < rightHand &
+                             mySubset$scan > leftHand,]
+    
+    adjustedZone = generalizeWarping(megaTableII)
+    #recalculate the signal to noise of the region
+    signalRegion = mySubset[mySubset$scan > leftHand &
+                              mySubset$scan < rightHand, ]
+    signal = mean(signalRegion$intensity)
+    #signal to noise ratio
+    signalRatio = signal / signalBackground
+    print(signalRatio)
+    #run anovalign onlyonce the boundaries have been refined and get the adjusted region
+    if (signalRatio < 2.5) {
+      tableOfAnovalignAdjusted = rbind(tableOfAnovalignAdjusted, adjustedZone)
+      #plot the boundaries aka the green lines
+      plot(
+        mySubset$scan,
+        mySubset$intensity,
+        xlab = "Scan",
+        ylab = "Intensity",
+        main = paste(
+          "Left and Right Boundaries of Scans to Be Aligned for Mass",
+          mySubset$mass[i]
+        )
+      )
+      abline(v = leftHand, col = "green")
+      abline(v = rightHand, col = "green")
+    }
+    #exclude anything within this interval
+    intervalExclude = c(leftHand:rightHand)
+    ##print(intervalExclude)
+    ##print("is intervalExclude ")
+    #remove the interval
+    mySubset1Exclude = mySubset1Exclude[!(mySubset1Exclude$scan %in% intervalExclude),]
+    counter = counter + 1
+  }
 }
+dev.off()
 ```
 
-
-
-
+IDEA! once the bounds are reached, attempt only expanding ONE of the two bounds. Then, if the signal goes back up, iterate until it drops once more.
+ISSUE TO FIX- ONLY RUN ANOValign ONCE BOUNDS ARE REACHED, OTHERWISE WE GET MULTIPLE ENTRIES FROM ONE MASS in tableofanovalignadjusted
+sample() was making the results inconsistent across runs, so I used set.seed() to get consistent behavior
+was using sum of intensity to get signal to noise... i changed to mean to get the bound reduction working... what are some potential ways we could calculate an appropriate signal-to-noise ratio?
+mass 185.077 vs 188.148 vs 313.112 (313.112 is particularly of interest to me- What would be causing this very thin bound??)
 
 
