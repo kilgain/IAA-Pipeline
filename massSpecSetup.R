@@ -67,6 +67,11 @@ for(i in 1:(length(tableList)-1)) {
 #transfer result to new dataframe as matrix1 gets reused
 nospikeConfirmedResults <- matrix1[matrix1$mass %in% nospikeConfirmedMasses, ]
 nospikeConfirmedResultsSample2 <- matrix2[matrix2$mass %in% nospikeConfirmedMasses, ]
+rm(matrix1)
+rm(matrix2)
+rm(table)
+rm(TempTable)
+
 # head(nospikeConfirmedResults)
 # length(tableList[[1]]$mass)
 # length(tableList[[2]]$mass)
@@ -222,8 +227,30 @@ for(i in 1:length(spikeCounts))
   spikeTable = rbind(spikeTable, TempTable)
 }
 spikeTable = as.data.frame(spikeTable)
+saveRDS(spikeTable, "spikeTable")
+
+spikeTable2 = readRDS("C:/Users/Louis/Downloads/massSpec/spikeTable.rds")
 
 
-
-
+nospikeCounts <- list.files("C:/Users/Louis/Downloads/massSpec/nospike", full.names = T, recursive = T)
+nospikeTable =  data.frame(matrix(nrow = 0, ncol = 6))
+colnames(nospikeTable) = c("mass", "intensity", "scan", "polarity", "massspectype", "file")
+tableList = list()
+for(i in 1:length(nospikeCounts))
+{
+  #clear the memory
+  gc()
+  file = nospikeCounts[i]
+  table<- read.delim(file, sep = "\t", header = F)
+  table<- table[complete.cases(table), ]
+  print(i)
+  print(head(file))
+  TempTable =  table
+  colnames(TempTable) = c("mass", "intensity", "scan", "polarity", "massspectype")
+  TempTable$'NA' = NULL
+  TempTable$file = nospikeCounts[i]
+  nospikeTable = rbind(nospikeTable, TempTable)
+}
+nospikeTable = as.data.frame(nospikeTable)
+saveRDS(nospikeTable, "nospikeTable.rds")
  
