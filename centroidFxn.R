@@ -77,5 +77,5 @@ cutoff = substr(cutoff, 7, nchar(cutoff))
 
 
 
-write.table(masses, file=paste("/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/centroidMasses/cutoff", cutoff, sep=""), row.names=F)
+write.table(masses, file=paste("/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/centroidMasses5C/cutoff", cutoff, sep=""), row.names=F)
 

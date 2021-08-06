@@ -666,6 +666,9 @@ generalizeWarping <- function(metabolitePlotFull)
   #why?  sometimes the highest one can be an outlier/poor chromatography that
   #'smooshes' together signals
   #maxReference = dplyr::count(metabolitePlotFull, file)[order(dplyr::count(metabolitePlotFull, file)$n, decreasing = TRUE), ][3, ]$file
+  
+  print(head(metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),]))
+  
   maxReference = metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),][3,]$file
   #this table will contain the alignment reference AND the aligned files for all
   #files in each tertile
@@ -707,6 +710,7 @@ generalizeWarping <- function(metabolitePlotFull)
     both = metabolitePlotSlice1
     #take out the top of the reference peak
     metabolitePlotSlice1 = metabolitePlotSlice1[metabolitePlotSlice1$intensity > quantile(metabolitePlotSlice1$intensity, .75, na.rm = T), ]
+    print(paste(maxReference, "is MaxReference"))
     for (i in 1:length(unique(metabolitePlot$file)))
     {
       #print(i)
@@ -906,7 +910,7 @@ callAllOtherFxns = function(segment1)
         #quantileTest = quantile(subsetToAdd, c(.25, .85), na.rm = TRUE)
         
         
-        if(length(subsetToAdd) > 10)
+        if(length(subsetToAdd) > 9)
         {
           
           #print(quantileTest)
@@ -958,6 +962,9 @@ callAllOtherFxns = function(segment1)
 
 config = read_yaml("/home/lconnelly/Metabolomics/Config.yaml")
 
+
+
+
 args = commandArgs(trailingOnly=TRUE)
 vecOfMasses = basename(args)
 
@@ -986,11 +993,11 @@ currentDir = args
 #system(makeDirCommandDatFile)
 
 
-
-
   #options(digits = 20)
   myMassTest = as.numeric(vecOfMasses)
-  myMassTest = myMassTest - (.00000367)*myMassTest
+  
+  #old adjustment= - (.00000367)*myMassTest
+  myMassTest = myMassTest
   myMassTest = round(myMassTest, digits = 5)
   print(myMassTest)
   myMassTestQuery = myMassTest
@@ -1008,7 +1015,7 @@ currentDir = args
 #  print(file_list)
 #  print(" is file_list")
 
-  fullFileName = paste(currentDir, "/",  myMassTest,"merged.txt", sep = "")
+  fullFileName = paste(currentDir, "/",  vecOfMasses,"merged.txt", sep = "")
   mergedExclude = fullFileName
 
 
@@ -1052,16 +1059,18 @@ if(!(fullFileName %in% file_list))
 
 #  write.table("helloAllFilesCreatedNew", "/home/lconnelly/Metabolomics/test00.txt")
 
-  write.table(allFiles, file=fullFileName, row.names = FALSE)
+  write.table(allFiles, file=fullFileName, row.names = FALSE, sep = "\t")
 
 }else {
 #  write.table("helloAllFilesCreatedPreviouslyBeforeRead-in", "/home/lconnelly/Metabolomics/test01.txt")
  
- allFiles = read.table(fullFileName, header = TRUE, sep = " ")
+ allFiles = read.table(fullFileName, header = TRUE, sep = "\t")
 
 #  write.table("helloAllFilesCreatedPreviouslyAfterRead-in", "/home/lconnelly/Metabolomics/test02.txt")
 }	
 
+
+write.table("hello", file = "/home/lconnelly/Metabolomics/testThruReadIn.txt")
 
 # write.table("hello", "/home/lconnelly/Metabolomics/test1.txt")
 
@@ -1135,37 +1144,37 @@ if(!(fullFileName %in% file_list))
 
 
 
-consistentWithInjections = list.files(currentDir)
-x = nchar(basename(currentDir)) + 1
-consistentWithInjections = substring(consistentWithInjections, first = x)
-consistentWithInjections = str_remove(consistentWithInjections, ".rawoutput.txt.hdf5newColumn_plate.hdf5.txt")
+###consistentWithInjections = list.files(currentDir)
+###x = nchar(basename(currentDir)) + 1
+###consistentWithInjections = substring(consistentWithInjections, first = x)
+###consistentWithInjections = str_remove(consistentWithInjections, ".rawoutput.txt.hdf5newColumn_plate.hdf5.txt")
 
 
 
-injectionOrders <- list.files(config$injectionLists, full.names = T)
-injectionOrders = mixedsort(injectionOrders)
+###injectionOrders <- list.files(config$injectionLists, full.names = T)
+###injectionOrders = mixedsort(injectionOrders)
 
 #if(myMassTest == 182.1234) {
 #	write.table(injectionOrders, file = paste(config$metabolomicsRoot, "/injectionOrdersCitrulline.txt", sep = ""))
 #}
 
-allInjections = vector()
-labelBatches = vector()
-for(f in 1:length(injectionOrders)) {
-  injectionOrder = read.table(injectionOrders[f], sep = ",", header = TRUE, stringsAsFactors = FALSE)
-  myOrder = injectionOrder$File.Name
-  myOrder = sub(" ", "_", myOrder)
-  for(a in 1:length(myOrder)) {
-    if(substr(myOrder[a], start = 1, stop = 4) != "HILI") {
-      myOrder[a] = paste("HILIC_", myOrder[a], sep="")
-    }
-  }
-  myOrder = myOrder[myOrder %in% intersect(myOrder, consistentWithInjections)]
-  labelBatches = c(labelBatches, rep(f, times=length(myOrder)))
-  allInjections = c(allInjections, myOrder)
-}
+###allInjections = vector()
+###labelBatches = vector()
+###for(f in 1:length(injectionOrders)) {
+###  injectionOrder = read.table(injectionOrders[f], sep = ",", header = TRUE, stringsAsFactors = FALSE)
+###  myOrder = injectionOrder$File.Name
+###  myOrder = sub(" ", "_", myOrder)
+###  for(a in 1:length(myOrder)) {
+###    if(substr(myOrder[a], start = 1, stop = 4) != "HILI") {
+###      myOrder[a] = paste("HILIC_", myOrder[a], sep="")
+###    }
+###  }
+###  myOrder = myOrder[myOrder %in% intersect(myOrder, consistentWithInjections)]
+###  labelBatches = c(labelBatches, rep(f, times=length(myOrder)))
+###  allInjections = c(allInjections, myOrder)
+###}
 
-consistentWithInjections = consistentWithInjections[match(allInjections,consistentWithInjections)]
+###consistentWithInjections = consistentWithInjections[match(allInjections,consistentWithInjections)]
 
 #write.table(allInjections, file = paste(config$metabolomicsRoot, "/allInjections.txt", sep = ""))
 
@@ -1174,7 +1183,14 @@ consistentWithInjections = consistentWithInjections[match(allInjections,consiste
 
 #pipeline for bounds goes here: outputs table where colnames are files and first row is intensity (first three columns are compound(mass), rt, x
 #Before running, need to initialize output table:
-nameOfAllFiles = consistentWithInjections
+
+##This needs  to be the list of all files (should add into yaml config file)
+
+fileList = read.table(config$fileList, header = T)$x
+
+fileList = str_remove(fileList, ".rawoutput.txt")
+
+nameOfAllFiles = fileList
 numberOfSampleFiles = nameOfAllFiles
 
 numberOfSampleFiles = unique(numberOfSampleFiles)
@@ -1185,6 +1201,8 @@ allInfoTableAllFiles = as.data.frame(allInfoTableAllFiles)
 #note that this could be challenging if we don't have 
 #the files that we need in the subset
 colnames(allInfoTableAllFiles) =c("compound","rt", as.character(numberOfSampleFiles))
+
+
 
 #Pipeline for mass features:
 for (i in 1:1)
@@ -1207,6 +1225,7 @@ for (i in 1:1)
   
   mySubset<- allFiles
   
+  mySubset <- mySubset %>% filter(newMass > myMassTest-(.0000025)*myMassTest & newMass < myMassTest+(.0000025)*myMassTest)
   
  
   #make sure that the intensity column is numeric
@@ -1407,9 +1426,23 @@ for (i in 1:1)
   
 
   table1Original = mySubsetOG
+  
+  
+  if(!(is.numeric(vecOfStartsFinal))){
+    vecOfStartsFinal = 0
+  }
+  if(!(is.numeric(vecOfStopsFinal))){
+    vecOfStopsFinal = 3000
+  }
+  
+  print(vecOfStartsFinal)
+  print(vecOfStopsFinal)
+  
+  
+  
   #table = tableOriginal
   #now, go through each of the "zones" and determine if they need to be merged or not
-  for(i in 1:length( vecOfStartsFinal))
+  for(i in 1:length(vecOfStartsFinal))
   {
     
     start1 = vecOfStartsFinal[i]
@@ -1419,6 +1452,7 @@ for (i in 1:1)
     #segment1 = segment1[segment1$Intensity > quantile(segment1$Intensity, p = .9),]
     segment1 = generalizeWarping(segment1)
     
+    print(head(segment1))
     #run anovAlign on the segment now!
     
     #segment1$Mstype = NULL
@@ -1426,19 +1460,29 @@ for (i in 1:1)
     tableForRegion = callAllOtherFxns(segment1)
     allInfoTableAllFiles = rbind(allInfoTableAllFiles,tableForRegion)
   } 
-  
+
+###three stars = old iteration
+
+name = paste(config$metabolomicsRoot,"/outputPdfs5C/", vecOfMasses, "_plotinfo.pdf", sep = "")
+
+###myMass = myMassTest
+
+pdf(name)
+###print(head(segment1))
+plot(segment1$scan, segment1$intensity, main = "ANOVALIGN")  
 
 }
+
+
+write.csv(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/vecOfIntensitiesForEachMass5C/", vecOfMasses, "-VecOfIntensities.csv", sep = ""), row.names=F)
+
+
 
 #Now we have the allInfoTableAllFiles
 #cols = compound, rt, (x?), [files in order of injection]
 #row1 = sum of intensity within RT bounds + 5ppm
 
-name = paste(config$metabolomicsRoot,"/outputPdfs/", myMassTest, "_plotinfo.pdf", sep = "")
 
-myMass = myMassTest
-
-pdf(name)
 
 plot(allFiles$newMass, allFiles$Intensity, main = "10PPM Window")
 abline(v = myMass, col = "green")
@@ -1447,40 +1491,82 @@ plot(allFiles$scan, allFiles$Intensity)
 abline(v = vecOfStartsFinal[1], col = "green")
 abline(v = vecOfStopsFinal[1], col = "green")
 
-
-start = 6
-for(p in 1:5)
-{
-	if(colnames(allInfoTableAllFiles)[p] != "compound" & colnames(allInfoTableAllFiles)[p] != "rt" & colnames(allInfoTableAllFiles)[p] != "x"){
-		if(start > p){
-		start = p
-		}
-	} 
-}
-
-vecOfIntensities <- allInfoTableAllFiles[1, start:length(colnames(allInfoTableAllFiles))]
-vecOfIntensities <- as.numeric(vecOfIntensities[1, ])
+dev.off()
 
 
-plot(vecOfIntensities)
+###start = 6
+###for(p in 1:5)
+###{
+###	if(colnames(allInfoTableAllFiles)[p] != "compound" & colnames(allInfoTableAllFiles)[p] != "rt" & colnames(allInfoTableAllFiles)[p] != "x"){
+###		if(start > p){
+###		start = p
+###		}
+###	} 
+###}
+
+###vecOfIntensities <- allInfoTableAllFiles[1, start:length(colnames(allInfoTableAllFiles))]
+###vecOfIntensities <- as.numeric(vecOfIntensities[1, ])
+###vecOfIntensities <- as.data.frame(vecOfIntensities)
+###vecOfIntensities$names <- colnames(allInfoTableAllFiles)[start:length(colnames(allInfoTableAllFiles))]
+#vecOfIntensities$standard = vecOfMasses
+#write.csv(vecOfIntensities, file = paste(config$metabolomicsRoot, "/vecOfIntensities/",vecOfMasses.txt, sep = ""))
+
+#vecOfIntensities$vecOfIntensities <- log10(vecOfIntensities$vecOfIntensities + 1)
 
 
 
-vecOfIntensitiesCitrulline <- read.table(paste(config$metabolomicsRoot, "/vecOfIntensitiesCitrulline.txt", sep=""))[,1]
+
+#write.csv(vecOfIntensities, file = "/home/lconnelly/Metabolomics/newVecOfIntensitiesCitrullineEndogenou.txt", row.names=F)
+
+###plot(as.numeric(vecOfIntensities$vecOfIntensities), main = "STANDARD BEING TESTED")
+
+
+
+
+###vecOfIntensitiesCitrulline <- read.table(paste(config$metabolomicsRoot, "/newVecOfIntensitiesCitrulline.txt", sep=""), header = T, sep = ",")
+
+
+#vecOfIntensitiesCitrulline$vecOfIntensities <- log10(vecOfIntensitiesCitrulline$vecOfIntensities + 1)
+
+
+###vecOfIntensities <- vecOfIntensities[vecOfIntensitiesCitrulline$names %in% vecOfIntensities$names,]
+###vecOfIntensities <- vecOfIntensities[vecOfIntensities$names %in% vecOfIntensitiesCitrulline$names,]
+
+
+
+###vecOfIntensitiesCitrulline <- vecOfIntensitiesCitrulline[vecOfIntensitiesCitrulline$names %in% vecOfIntensities$names,]
+###vecOfIntensitiesCitrulline <- vecOfIntensitiesCitrulline[vecOfIntensities$names %in% vecOfIntensitiesCitrulline$names,]
+
+
+###print(length(vecOfIntensities$vecOfIntensities))
+###print(vecOfIntensities$names[800])
+
+###print(length(vecOfIntensitiesCitrulline$vecOfIntensities))
+###print(vecOfIntensitiesCitrulline$names[800])
+
+
+
+#print(head(vecOfIntensitiesCitrulline))
+
+###plot(as.numeric(vecOfIntensitiesCitrulline$vecOfIntensities), main = "CITRULLINE CONTROL")
 
 #allFiles = allFiles[allFiles$Intensity > quantile(allFiles$Intensity, probs = .90),]
 
 #allFiles = allFiles %>% filter(newMass > myMassTest-(myMassTest*.0000025) & newMass < myMassTest+(myMassTest*.0000025))
 
-if(cor(vecOfIntensities, vecOfIntensitiesCitrulline) > .75)) {
-	fileOutput = paste(vecOfMasses,"anovalign_july30_all_standards_comprehensive_PASS.txt", sep = "-" )
-	write.table(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/outputCorrelations/",fileOutput,sep=""))
-}
-else{
-	fileOutput = paste(vecOfMasses,"anovalign_july30_all_standards_comprehensive_FAIL.txt", sep = "-" )
-	write.table(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/outputCorrelations/",fileOutput,sep=""))
+###print(cor(as.numeric(vecOfIntensities$vecOfIntensities), as.numeric(vecOfIntensitiesCitrulline$vecOfIntensities)))
 
-}
+
+
+###if(cor(vecOfIntensities$vecOfIntensities, vecOfIntensitiesCitrulline$vecOfIntensities) > .6) {
+###	fileOutput = paste(vecOfMasses,"anovalign_july30_all_standards_comprehensive_PASS.txt", sep = "-" )
+###	write.table(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/outputCorrelations/",fileOutput,sep=""))
+###}else{
+###	fileOutput = paste(vecOfMasses,"anovalign_july30_all_standards_comprehensive_FAIL.txt", sep = "-" )
+###	write.table(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/outputCorrelations/",fileOutput,sep=""))
+###
+###}
+
 
 
 #vecOfIntensities= vector()
@@ -1496,7 +1582,7 @@ else{
 #}
 
 
-dev.off()
+###dev.off()
 
 #if(myMassTest == 182.1234) {
 #	write.table(consistentWithInjections, file = paste(config$metabolomicsRoot, "/indexForInjectionPlotCitrulline.txt", sep = ""))

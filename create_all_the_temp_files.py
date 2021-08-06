@@ -8,6 +8,8 @@ import os
 import yaml
 
 
+
+
 fileRead = sys.argv[1]
 #testMasses = pd.read_csv("/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/massesFileRounded.txt")
 
@@ -68,7 +70,8 @@ testMasses = pd.read_csv(sys.argv[2])
 
 
 testMasses = testMasses['x'].values 
-testMasses = testMasses[0:10]
+#testMasses = testMasses[0:10]
+#testMasses = [176.1031,177.1001,177.1073, 182.12326, 183.1203,183.1275]
 #print(testMasses)
 #print(" is testMasses")
 
@@ -143,7 +146,7 @@ for i in testMasses:
 
 
 	root = config['metabolomicsRoot']
-	tempPath = root + "/step1Conversion/step2Isolock/step3Autocredential/step4Subset/tempFiles/" + str(i)
+	tempPath = root + "/step1Conversion/step2Isolock/step3Autocredential/step4Subset/tempFiles5C/" + str(i)
 
 
 	if not os.path.exists(tempPath):
@@ -163,4 +166,5 @@ for i in testMasses:
 	print("is what we are printing")
 	print(len(subsetChromatogramII))
 	if len(subsetChromatogramII) > 0:
-		subsetChromatogramII.export_csv(path=fullName)
+		subsetChromatogramII.export_csv(path=fullname)
+#old path = fullname

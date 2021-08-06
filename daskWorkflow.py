@@ -8,16 +8,18 @@ def runScript(x,y):
 	os.system("Rscript " + x + " " + y)
 
 
-def runPythonScript(x,y, z = ""):
-	os.system("python3 " + x + " " + y + " " + z)
+def runPythonScript(x,y = "", z = "", xx = "", xy = ""):
+	os.system("python3 " + x + " " + y + " " + z + " " + xx + " " + xy)
 
+root = '/home/lconnelly/Metabolomics'
+runNumber = 'analysis1'
 
 if __name__ == "__main__":
 	#Step1: Add File Column and Collapse Duplicate Masses
-	cluster = HTCondorCluster(cores=10, memory = "4 GB", disk = "4 GB", local_directory = "/home/lconnelly/Metabolomics")
+	cluster = HTCondorCluster(n_workers = 1, cores=1, memory = "4 GB", disk = "4 GB", local_directory = root)
 	with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
 		config = yaml.safe_load(file)
-	config = config['samplesDirectory']
+	config = config['samplesDirectory'] + runNumber
 	files = os.listdir(config)
 	cluster.scale(jobs = len(files))
 	client = Client(cluster)
@@ -31,14 +33,14 @@ if __name__ == "__main__":
 
 	if not '"File"' in line1:
 		for f in files:
-			processed.append(client.submit(runScript, "/home/lconnelly/Metabolomics/step1Conversion/fileAdd.R", f))
+			processed.append(client.submit(runScript, root + "/step1Conversion/fileAdd.R", f))
 	progress(processed)
 	client.gather(processed)
 	client.shutdown()
 
 
 	#Step2: Convert .txt Files to HDF5 Format
-	cluster = HTCondorCluster(cores=10, memory = "4 GB", disk = "4 GB", local_directory = "/home/lconnelly/Metabolomics")
+	cluster = HTCondorCluster(cores=1, n_workers=1, memory = "4 GB", disk = "4 GB", local_directory = root)
 	cluster.scale(jobs = len(files))
 	client = Client(cluster)
 	processed = []
@@ -48,7 +50,7 @@ if __name__ == "__main__":
 	if x == False:
 		os.mkdir(config)
 		for f in files:
-			processed.append(client.submit(runPythonScript, "/home/lconnelly/Metabolomics/step1Conversion/create_the_hdf5_files.py", f))
+			processed.append(client.submit(runPythonScript, root + "/step1Conversion/create_the_hdf5_files.py", f))
 	progress(processed)
 	client.gather(processed)
 	client.shutdown()
@@ -56,7 +58,7 @@ if __name__ == "__main__":
 
 
 	#Step3: Run Isolock On Each File
-	cluster = HTCondorCluster(cores=10, memory = "4 GB", disk = "4 GB", local_directory = "/home/lconnelly/Metabolomics")
+	cluster = HTCondorCluster(cores=1, n_workers = 1, memory = "4 GB", disk = "4 GB", local_directory = root)
 	cluster.scale(jobs = len(files))
 	client = Client(cluster)
 	processed = []
@@ -67,40 +69,82 @@ if __name__ == "__main__":
 	
 	if not os.path.isfile(config + '/' + x):
 		for f in files:
-			processed.append(client.submit(runPythonScript, "/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/python_script_determine_offset.py", f))
+			processed.append(client.submit(runPythonScript, root + "/step1Conversion/step2Isolock/python_script_determine_offset.py", f))
 	progress(processed)
 	client.gather(processed)
 	client.shutdown()
 
 	#Step4: Run Autocredential
-	cluster = HTCondorCluster(cores=10, memory = "4 GB", disk = "4 GB", local_directory = "/home/lconnelly/Metabolomics")
-	cluster.scale(jobs = 1)
-	client = Client(cluster)
-	processed = []
 
 	with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
-        	config = yaml.safe_load(file)
+		config = yaml.safe_load(file)
 
-	config = config['metabolomicsRoot']
-	config = config + "/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffs"
-	x = os.path.isdir(config)
-	if x == False:
-		os.mkdir(config)
-		processed.append(client.submit(runPythonScript, "/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/autocredential.py"))
-	progress(processed)
-	client.gather(processed)
-	client.shutdown()
+
+	if config['polarity'] != "negative":
+	#Positive:
+		cluster = HTCondorCluster(cores=1, n_workers = 1, memory = "20 GB", disk = "4 GB", local_directory = root)
+		cluster.scale(jobs = 1)
+		client = Client(cluster)
+		processed = []
+
+		with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
+        		config = yaml.safe_load(file)
+
+
+
+		path = config['samplesDirectory'] + runNumber
+		path = path.replace("rawDataFiles", "hdf5Files")
+		inputFiles = path + "/*.hdf5newColumn_plate.hdf5"
+
+
+
+		/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffsNegative/
+
+		outputPathPositive = root + "/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffsPositive" + runNumber
+		outputPathNegative = root + "/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffsNegative" + runNumber
+
+		path = config['metabolomicsRoot']
+		path = path + "/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffsPositive"
+		x = os.path.isdir(path)
+		if x == False:
+			os.mkdir(path)
+			processed.append(client.submit(runPythonScript, root + "/step1Conversion/step2Isolock/step3Autocredential/autocredential.py", "positive", inputFiles, outputPathPositive, outputPathNegative))
+		progress(processed)
+		client.gather(processed)
+		client.shutdown()
+
+	if config['polarity'] != "positive":
+	#Negative:
+		cluster = HTCondorCluster(cores=1, n_workers = 1, memory = "20 GB", disk = "4 GB", local_directory = "/home/lconnelly/Metabolomics")
+		cluster.scale(jobs = 1)
+		client = Client(cluster)
+		processed = []
+
+		with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
+			config = yaml.safe_load(file)
+
+		config = config['metabolomicsRoot']
+		config = config + "/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffsNegative"
+		x = os.path.isdir(config)
+		if x == False:
+			os.mkdir(config)
+			processed.append(client.submit(runPythonScript, "/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/autocredential.py", "negative", inputFiles))
+		progress(processed)
+		client.gather(processed)
+		client.shutdown()
+
+
 
 	#Step5: Centroid the Masses
 	files = os.listdir(config)
-	cluster = HTCondorCluster(cores=10, memory = "4 GB", disk = "4 GB", local_directory = "/home/lconnelly/Metabolomics")
+	cluster = HTCondorCluster(cores=1, n_workers = 1, memory = "4 GB", disk = "4 GB", local_directory = root)
 	cluster.scale(jobs = len(files))
 	client = Client(cluster)
 	processed = []
 	with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
 		config = yaml.safe_load(file)
 	config = config['metabolomicsRoot']
-	config = config + "/step1Conversion/step2Isolock/step3Autocredential/centroidMasses"
+	config = config + "/step1Conversion/step2Isolock/step3Autocredential/centroidMasses" + runNumber
 	x = os.path.isdir(config)
 	if x == False:
 		os.mkdir(config)
@@ -130,7 +174,7 @@ if __name__ == "__main__":
 	
 
 
-	cluster = HTCondorCluster(cores=10, memory="10 GB", disk = "4 GB", local_directory = "home/lconnelly/Metabolomics")
+	cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory = "home/lconnelly/Metabolomics")
 	cluster.scale(jobs = len(files))
 	client = Client(cluster)
 	processed = []
@@ -148,10 +192,24 @@ if __name__ == "__main__":
 
 	if not os.path.exists(config['metabolomicsRoot']+"/outputCorrelations/"):
                 os.makedirs(config['metabolomicsRoot']+"/outputCorrelations/", exist_ok=True)
+	
+	if not os.path.exists(config['metabolomicsRoot']+"/vecOfIntensitiesForEachMass/"):
+		os.makedirs(config['metabolomicsRoot']+"/vecOfIntensitiesForEachMass/", exist_ok=True)
 
-	massDirectories = os.listdir(config['tempFiles'])
-	massDirectories = [config['tempFiles'] + "/" + m for m in massDirectories]
-	cluster = HTCondorCluster(cores=10, memory="10 GB", disk = "4 GB", local_directory = "home/lconnelly/Metabolomics")
+
+
+	#massDirectories = os.listdir(config['tempFiles'])
+	#massDirectories = [config['tempFiles'] + "/" + m for m in massDirectories]
+
+
+	massDirectories = os.listdir('/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/DOE_setaria_and_HILIC/')
+	massDirectories = ['/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/DOE_setaria_and_HILIC/' + m for m in massDirectories]
+	
+
+#	massDirectories = massDirectories[0:200]
+
+
+	cluster = HTCondorCluster(n_workers=1, cores=1, memory="10 GB", disk = "4 GB", local_directory = "home/lconnelly/Metabolomics")
 	cluster.scale(jobs = len(massDirectories))
 	client = Client(cluster)
 	processed = []
@@ -160,3 +218,4 @@ if __name__ == "__main__":
 		processed.append(client.submit(runScript, "/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/step4Subset/step5Merge/read_in_the_masses_tempfiles.R", m))
 	progress(processed)
 	client.shutdown()	
+
