@@ -1,5 +1,10 @@
 
 
+args = commandArgs(trailingOnly = T)
+
+
+
+
 centroidFxn= function(centroidTestBroad)
 {
   centroidTestBroad = centroidTestBroad
@@ -65,17 +70,29 @@ centroidFxn= function(centroidTestBroad)
 }
 
 
-args = commandArgs(trailingOnly = T)
-args = paste("/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffs/", args, sep="")
-masses = scan(args)
+#args = commandArgs(trailingOnly = T)
+
+#write.table(args, file = "/home/lconnelly/Metabolomics/printCentroidArgs.txt")
+
+
+print(args[1])
+
+
+outputPath = args[2]
+
+#args = paste("/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffs/", args, sep="")
+
+masses = scan(args[1])
 
 masses = centroidFxn(masses)
 
-cutoff = gregexpr(pattern = "_true", args)
-cutoff = substr(args, cutoff[[1]][1], nchar(args))
-cutoff = substr(cutoff, 7, nchar(cutoff))
+print(length(masses))
+
+#cutoff = gregexpr(pattern = "_true", args[1])
+#cutoff = substr(args[1], cutoff[[1]][1], nchar(args[1]))
+#cutoff = substr(cutoff, 7, nchar(cutoff))
 
 
 
-write.table(masses, file=paste("/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/centroidMasses5C/cutoff", cutoff, sep=""), row.names=F)
+write.table(masses, file=paste(outputPath, '/', basename(args[1]),  "centroidMasses.txt", sep=""), row.names=F)
 

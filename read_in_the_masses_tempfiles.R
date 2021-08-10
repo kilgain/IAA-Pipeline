@@ -966,7 +966,7 @@ config = read_yaml("/home/lconnelly/Metabolomics/Config.yaml")
 
 
 args = commandArgs(trailingOnly=TRUE)
-vecOfMasses = basename(args)
+vecOfMasses = basename(args[1])
 
 
 
@@ -985,7 +985,7 @@ vecOfMasses = basename(args)
 #currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/standards_DOE_HILIC_louis_matches"
 #currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/standards_louis_more_comprehensive"
 
-currentDir = args
+currentDir = args[1]
 
 #allDataDirectory = paste(getwd(),"/",currentDir, sep = "")
 #makeDirCommandDatFile =  paste("mkdir", allDataDirectory, sep = " ")
@@ -1070,7 +1070,7 @@ if(!(fullFileName %in% file_list))
 }	
 
 
-write.table("hello", file = "/home/lconnelly/Metabolomics/testThruReadIn.txt")
+#write.table("hello", file = "/home/lconnelly/Metabolomics/testThruReadIn.txt")
 
 # write.table("hello", "/home/lconnelly/Metabolomics/test1.txt")
 
@@ -1186,7 +1186,9 @@ write.table("hello", file = "/home/lconnelly/Metabolomics/testThruReadIn.txt")
 
 ##This needs  to be the list of all files (should add into yaml config file)
 
-fileList = read.table(config$fileList, header = T)$x
+
+
+fileList = read.table(args[2], header = T)$x
 
 fileList = str_remove(fileList, ".rawoutput.txt")
 
@@ -1463,7 +1465,7 @@ for (i in 1:1)
 
 ###three stars = old iteration
 
-name = paste(config$metabolomicsRoot,"/outputPdfs5C/", vecOfMasses, "_plotinfo.pdf", sep = "")
+name = paste(args[3], '/', vecOfMasses, ".pdf", sep = "")
 
 ###myMass = myMassTest
 
@@ -1474,7 +1476,7 @@ plot(segment1$scan, segment1$intensity, main = "ANOVALIGN")
 }
 
 
-write.csv(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/vecOfIntensitiesForEachMass5C/", vecOfMasses, "-VecOfIntensities.csv", sep = ""), row.names=F)
+write.csv(allInfoTableAllFiles, file =paste(args[4], "/", vecOfMasses, ".txt", sep = ""), row.names=F)
 
 
 

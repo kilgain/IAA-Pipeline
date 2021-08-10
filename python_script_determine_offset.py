@@ -7,7 +7,9 @@ import yaml
 theCommands = sys.argv[1]
 testFile = theCommands.split(',')
 testFile = testFile[0]
-    
+
+
+referenceFile = sys.argv[2]
  
 #dvI = vaex.open('/home/ahubbard/all_text_files_six_plates/setaria_files_all/setaria/to_combined_all_files/combined_chromatograms_with_header.csv.hdf5')
 #dvI = vaex.open('/shares/ibaxter_share/private/ahubbard/all_text_files_six_plates/setaria_files_all/sorghum_vaex/combined_chromatograms_with_header.csv.hdf5')
@@ -22,11 +24,11 @@ testFile = testFile[0]
 
 
 #used for the HILIC
-with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
-  config = yaml.safe_load(file)
+#with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
+#  config = yaml.safe_load(file)
 
-zFilesSubsetI = vaex.open(config['referenceFile'])
-testFile = config['samplesDirectory'] + "/" + testFile
+zFilesSubsetI = vaex.open(referenceFile)
+#testFile = config['samplesDirectory'] + "/" + testFile
 
 
 
@@ -54,8 +56,8 @@ print("pulled out the first file")
 
 #vaexOpen = "/home/ahubbard/" + testFile
 vaexOpen = testFile
-vaexOpen = vaexOpen.replace("rawDataFiles", "hdf5Files")
-vaexOpen = vaexOpen + ".hdf5"
+#vaexOpen = vaexOpen.replace("rawDataFiles", "hdf5Files")
+#vaexOpen = vaexOpen + ".hdf5"
 print(vaexOpen)
 #vaexOpen = testFile
 
@@ -94,5 +96,8 @@ zFilesSubsetVaex['newMass'] = zFilesSubsetVaex['Mass'] - offset*.000001*zFilesSu
 
 
 #export the vaex file with the added column now
+#vaexOpen = /home/lconnelly/Metabolomics/outputs/hdf5Files/Analysis1/file1.txt.hdf5
+vaexOpen = vaexOpen.replace("hdf5Files", "hdf5FilesNewColumn")
+
 vaexOpenWrite=vaexOpen + "newColumn_plate.hdf5"
 zFilesSubsetVaex.export_hdf5(vaexOpenWrite)

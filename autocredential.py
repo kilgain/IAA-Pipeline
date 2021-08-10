@@ -5,6 +5,7 @@ from functools import reduce
 import pandas as pd
 import sys
 import yaml
+import os
 
 #with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
 #  config = yaml.safe_load(file)
@@ -13,8 +14,14 @@ import yaml
 #config = config.replace("rawDataFiles", "hdf5Files")
  
 #getopt.getopt(args, options, [long_options])
-inputFiles = sys.argv[2]
+path = sys.argv[2]
+
+inputFiles = os.listdir(path)
+inputFiles = [path + '/' + f for f in inputFiles]
+
 print(inputFiles)
+
+
 
 
 polarity = sys.argv[1]
@@ -27,7 +34,7 @@ polarity = sys.argv[1]
 
 
 
-dvI = vaex.open_many([inputFiles])
+dvI = vaex.open_many(inputFiles)
 df_pandasI = dvI.to_pandas_df(["newMass","Intensity","polarity"], parallel=False)
 if str(polarity) == "positive":
 	df_pandasI = df_pandasI[df_pandasI["polarity"] == "Positive"]
@@ -59,6 +66,8 @@ cutoff  = 10
 outputPathPositive = sys.argv[3]
 outputPathNegative = sys.argv[4]
 
+print(outputPathPositive)
+
 if str(polarity) != "negative":
 	for x in range(20):
 		sd =  1
@@ -71,7 +80,7 @@ if str(polarity) != "negative":
 		df_pandasII = df_pandasIMass - isoMass
 		isoIntersectII = reduce(np.intersect1d, (df_pandasIMass,df_pandasII))
 		Outputname = 'DOE_autocredential_isopairs_polarity_positive_' + str(cutoff) + '.txt' 
-		with open(outputPathPositive+Outputname, 'w') as f:
+		with open(outputPathPositive+ '/' + Outputname, 'w') as f:
 			for item in isoIntersectII:
 				f.write("%s\n" % item)
 
@@ -89,7 +98,7 @@ if str(polarity) != "positive":
 		df_pandasII = df_pandasIMass - isoMass
 		isoIntersectII = reduce(np.intersect1d, (df_pandasIMass,df_pandasII))
 		Outputname = 'DOE_autocredential_isopairs_polarity_negative_' + str(cutoff) + '.txt'
-		with open(outputPathNegative+Outputname, 'w') as f:
+		with open(outputPathNegative+ '/' + Outputname, 'w') as f:
 			for item in isoIntersectII:
 				f.write("%s\n" % item)
 

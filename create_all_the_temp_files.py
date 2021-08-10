@@ -141,16 +141,15 @@ for i in testMasses:
 
   #/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/standards_DOE_HILIC_louis_matches
 
-	with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
-		config = yaml.safe_load(file)
+#	with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
+#		config = yaml.safe_load(file)
 
 
-	root = config['metabolomicsRoot']
-	tempPath = root + "/step1Conversion/step2Isolock/step3Autocredential/step4Subset/tempFiles5C/" + str(i)
+#	root = config['metabolomicsRoot']
+	tempPath = sys.argv[3]
 
-
-	if not os.path.exists(tempPath):
-		os.makedirs(tempPath, exist_ok=True)
+	if not os.path.exists(tempPath+'/'+str(i)):
+		os.makedirs(tempPath+'/'+str(i), exist_ok=True)
 
   
 
@@ -159,12 +158,12 @@ for i in testMasses:
 
   #AC_ultralite_nov_25_2020
 	base=os.path.basename(fileRead)
-	fullName = tempPath + "/" + str(i) + base+ ".txt"
+	fullName = tempPath + "/" + str(i) + '/' + str(i) + base+ ".txt"
 	print(fullName)
 	print("printing out now")
 	print(subsetChromatogramII)
 	print("is what we are printing")
 	print(len(subsetChromatogramII))
 	if len(subsetChromatogramII) > 0:
-		subsetChromatogramII.export_csv(path=fullname)
+		subsetChromatogramII.export_csv(path=fullName)
 #old path = fullname
