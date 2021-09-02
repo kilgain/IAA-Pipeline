@@ -2,15 +2,12 @@ library(data.table)
 library(dplyr)
 library(yaml)
 library(stringr)
-library(gtools)
-#library(VPdtw)
-library(minpack.lm)
-#library(MassSpecWavelet)
-library(splines)
+#library(gtools)
+#library(minpack.lm)
+#library(splines)
 
 
 
-#output File
 
 #collapse this bracket to hide all functions
 {
@@ -142,7 +139,7 @@ library(splines)
           boundhit1 = TRUE
         }
         
-        # This chunk of code checks that the RIGHTHAND expanded bound is not within an already established boundary.
+        # This chunk of codechecks that the RIGHTHAND expanded bound is not within an already established boundary.
         # If it is, boundhit1 (right) is set to TRUE and the right bound is unified to the lefthand bound of the established boundary
         # differs from boundaryChecker in that this must also return boundhit=TRUE
         if (length(range[, 1]) != 0) {
@@ -272,10 +269,12 @@ library(splines)
     {
       fileLookup =  unique(mySubset$file)[j]
       subsetPlot = mySubset[mySubset$file == fileLookup ,]
-      myMax = subsetPlot[order(subsetPlot$intensity, decreasing = TRUE),][1:5,]$scan
-      #get the scan with the max signal and store it in the vector
-      #in order to determine the parameter of the drift
-      vecOFMaxes = c(vecOFMaxes, myMax)
+      if(length(subsetPlot$mass) > 5) {
+        myMax = subsetPlot[order(subsetPlot$intensity, decreasing = TRUE),][1:5,]$scan
+        #get the scan with the max signal and store it in the vector
+        #in order to determine the parameter of the drift
+        vecOFMaxes = c(vecOFMaxes, myMax)
+      }
     }
     if (Mode == "singlePeak") {
       vecOFMaxes <- sort(vecOFMaxes)
@@ -665,11 +664,27 @@ generalizeWarping <- function(metabolitePlotFull)
   #for the reference for the t-test, use the sample with the 3rd most signal
   #why?  sometimes the highest one can be an outlier/poor chromatography that
   #'smooshes' together signals
-  #maxReference = dplyr::count(metabolitePlotFull, file)[order(dplyr::count(metabolitePlotFull, file)$n, decreasing = TRUE), ][3, ]$file
+  maxReference = dplyr::count(metabolitePlotFull, file)[order(dplyr::count(metabolitePlotFull, file)$n, decreasing = TRUE), ][3, ]$file
   
   print(head(metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),]))
   
-  maxReference = metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),][3,]$file
+  #maxReference = metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),][3,]$file
+
+  print(maxReference)
+
+  
+  metabolitePlotSlice1 =  metabolitePlotFull[metabolitePlotFull$file == maxReference, ]
+ #pdf("/home/lconnelly/Metabolomics/testAnovalignReferenceFile.pdf") 
+ #plot(metabolitePlotSlice1$scan, metabolitePlotSlice1$intensity, main = "3rd most number of lines")
+# maxReference = metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),][1,]$file
+# metabolitePlotSlice1 = metabolitePlotFull[metabolitePlotFull$file == maxReference, ]
+#  plot(metabolitePlotSlice1$scan, metabolitePlotSlice1$intensity, main = "1st")
+# maxReference = metabolitePlotFull[order(metabolitePlotFull$intensity, decreasing = TRUE),][5,]$file
+# metabolitePlotSlice1 = metabolitePlotFull[metabolitePlotFull$file == maxReference, ]
+#  plot(metabolitePlotSlice1$scan, metabolitePlotSlice1$intensity, main = "5th")
+#  plot(metabolitePlotFull$scan, metabolitePlotFull$intensity, main = "all files")
+ #dev.off() 
+
   #this table will contain the alignment reference AND the aligned files for all
   #files in each tertile
   bothFull = data.frame(matrix(nrow = 0, ncol = length(colnames(
@@ -705,6 +720,7 @@ generalizeWarping <- function(metabolitePlotFull)
     metabolitePlotSlice1 =  metabolitePlot[metabolitePlot$file == maxReference, ]
     #initialize the column that will contain the adjusted scan info
     metabolitePlotSlice1$newRT = metabolitePlotSlice1$scan
+   
     #initialize the scan adjusted table, which will contain the original reference data
     #as well as the scan adjust info for each file
     both = metabolitePlotSlice1
@@ -720,7 +736,10 @@ generalizeWarping <- function(metabolitePlotFull)
         metabolitePlotSlice2BeforeFilter = metabolitePlotSlice2
         #take the top of the peak to compare to the reference sample as well.  Thus, we are taking the top of each 'zone' in each file
         metabolitePlotSlice2 = metabolitePlotSlice2[metabolitePlotSlice2$intensity > quantile(metabolitePlotSlice2$intensity, .75, na.rm = T), ]
-        if (length(metabolitePlotSlice1$scan) > 2 &
+
+        #print(paste(length(metabolitePlotSlice1$intensity), "is length of slice 1"))
+
+	if (length(metabolitePlotSlice1$scan) > 2 &
             length(metabolitePlotSlice2$scan) > 2)
         {
           #print("doing ttest at least")
@@ -745,8 +764,8 @@ generalizeWarping <- function(metabolitePlotFull)
       print("is nrow of both")
       bothFull = rbind(bothFull, both)
       print("binding both")
-      plot(both$scan, both$intensity, main = "after adjusting")
-      plot(both$scan, both$intensity, main = "before adjusting")
+      #plot(both$scan, both$intensity, main = "after adjusting")
+      #plot(both$scan, both$intensity, main = "before adjusting")
     }
   }
   if (nrow(bothFull) < 1)
@@ -771,8 +790,12 @@ callAllOtherFxns = function(segment1)
 {
   
   table = segment1
+  print(length(table$scan))
+  print("^^^ is length of data loaded into callALlOtherFxns")
   #read in the full temp file into a single table
   megaTableII = as.data.table(table)
+  print(length(megaTableII$scan))
+  print(" ^^^ is length of data loaded into data.table")
   megaTableII$file <- str_remove(megaTableII$file, ".rawoutput.txt")
   print("made megatable")
   print(head(megaTableII)) 
@@ -967,64 +990,39 @@ config = read_yaml("/home/lconnelly/Metabolomics/Config.yaml")
 
 args = commandArgs(trailingOnly=TRUE)
 vecOfMasses = basename(args[1])
-
-
-
-
-#have an output directory to put everything
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/setaria_plate9_chromatogram_files_final"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/setaria_plate_9_standards"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/all_broad_autocredential"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/HILIC_12_plates_setaria"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/HILIC_12_plates_setaria_standards"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/temp_files_broad_citrulline"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/june16th_bins_filtered_at_50_counts"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/broad_isotopes_multiple"
-
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/DOE_setaria_and_HILIC"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/standards_DOE_HILIC_louis_matches"
-#currentDir = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step3_convert_get_the_temp_files/standards_louis_more_comprehensive"
-
 currentDir = args[1]
 
-#allDataDirectory = paste(getwd(),"/",currentDir, sep = "")
-#makeDirCommandDatFile =  paste("mkdir", allDataDirectory, sep = " ")
-
-#system(makeDirCommandDatFile)
-
-
-  #options(digits = 20)
+ 
   myMassTest = as.numeric(vecOfMasses)
   
-  #old adjustment= - (.00000367)*myMassTest
+  #old adjustment for 27/36 samples v full DOE= - (.00000367)*myMassTest
   myMassTest = myMassTest
+  print("before rounding:")
+  print(myMassTest)
   myMassTest = round(myMassTest, digits = 5)
   print(myMassTest)
   myMassTestQuery = myMassTest
  
 
-  #set this to 0 if not working on isotopes  
   massSubDirectory = currentDir
   print(massSubDirectory)
   print(" is where we're going to read from")
-  #print(massSubDirectory)
-  #setwd(massSubDirectory)
 
   file_list <- list.files(path=massSubDirectory, full.names = TRUE)
   file_list = file_list[sapply(file_list, file.size) > 0]
-#  print(file_list)
-#  print(" is file_list")
-
+  print(head(file_list))
   fullFileName = paste(currentDir, "/",  vecOfMasses,"merged.txt", sep = "")
+  print("merged file name is:")
+  print(fullFileName)
   mergedExclude = fullFileName
 
 
 if(!(fullFileName %in% file_list))
 {
 
-
+  print("before read in")
   allFiles = read.table(file_list[1], header = TRUE, sep = ",")
-  #print(head(allFiles))
+  print("after read in")
   #colnames(allFiles) = c("row","File","Mass","Instensity","Scan", "Mode","MsType")
 
   print(allFiles)
@@ -1054,138 +1052,22 @@ if(!(fullFileName %in% file_list))
    }
   print("we're writing the output now")
   #write to the temp table
-  #allFiles = allFiles %>% filter(newMass > myMassTest-(myMassTest*.0000025) & newMass < myMassTest+(myMassTest*.0000025))
-  
-
-#  write.table("helloAllFilesCreatedNew", "/home/lconnelly/Metabolomics/test00.txt")
 
   write.table(allFiles, file=fullFileName, row.names = FALSE, sep = "\t")
 
 }else {
-#  write.table("helloAllFilesCreatedPreviouslyBeforeRead-in", "/home/lconnelly/Metabolomics/test01.txt")
- 
+ print("before read in merged")
  allFiles = read.table(fullFileName, header = TRUE, sep = "\t")
-
-#  write.table("helloAllFilesCreatedPreviouslyAfterRead-in", "/home/lconnelly/Metabolomics/test02.txt")
+ print("after read in merged")
 }	
 
 
-#write.table("hello", file = "/home/lconnelly/Metabolomics/testThruReadIn.txt")
-
-# write.table("hello", "/home/lconnelly/Metabolomics/test1.txt")
-
-
-
-  #initialize QC info for high intensity signals
-
-  #colnames(isoInfo) = c("Mass", "mainPeakHigh")
-
-  #mainPeakHigh = length(unique(allFiles[allFiles$Intensity > quantile(allFiles$Intensity, p = .75),]$File))
-
-
-  #isoInfoMass = t(data.frame(c(myMassTest, mainPeakHigh)))
-  #print(isoInfoMass)
-  #print( colnames(isoInfo))
-  #colnames(isoInfoMass) = colnames(isoInfo)
-
-  #isoInfo = rbind(isoInfo, isoInfoMass)
-
-  #output file for the table listing the number of samples in high intensity region
-  #QCInfo = paste("/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step4_combine_temp_files/QC_info_each_mass","/", myMassTest,"july21st_DOE.txt", sep = "")
-  
-
-  #write.table(allFiles,file = fullFileName, sep = "\t", row.names = FALSE) 
-
-
-
-
-  
-  #fileToReadIn = read.table(file = "/home/ahubbard/complete_auto_credential_pipeline_start_to_finish/step4_combine_temp_files/michael_wei_lipids_mass_and_RT.txt", sep = "\t", header= TRUE)
-  #fileToReadIn$RT = fileToReadIn$RT *60 * 1.7
-
- 
-#  name = paste(config$metabolomicsRoot,"/outputPdfs/", myMassTest, "_plotinfo.pdf", sep = "")
-#  myMass = myMassTest 
-  #mySubsetMetaInfoSubset = fileToReadIn[fileToReadIn$Mass == myMass, ]
-
-  #print("is the match")
-  #print(name)
-  #print(" is the name of the pdf")
-
-#  pdf(name)
-#  plot(allFiles$newMass, allFiles$Intensity, main = "10PPM Window")
-#  abline(v = myMass, col = "green")
-
-  #plot(allFiles$scan, allFiles$Intensity)
-  #abline(v = myMass, col = "green")
-
-  #ignore RT
-  #plot mass intensity
-  #next, does it follow a pattern of intensity that is roughly consistent across samples regardless of injection order? 
-  #when I look at the top 10% of the merged peak
-  #merge everything
-  #take top 10% - proxy for retention time
-  #pull out intensity from each file and sum them
-  #order by injection
-   
- 
-
-
-
-
- #myRTRight = mySubsetMetaInfoSubset$RT + 200
-  #myRTLeft = mySubsetMetaInfoSubset$RT - 200
-
- # plot(allFiles$scan, allFiles$Intensity)
-  #abline(v = myRTRight, col = "green")
-  #abline(v = myRTLeft, col = "green")
-
-#write.table("beforeConsistentInjections", file = paste(config$metabolomicsRoot, "/test2.txt", sep = ""))
-
-
-
-###consistentWithInjections = list.files(currentDir)
-###x = nchar(basename(currentDir)) + 1
-###consistentWithInjections = substring(consistentWithInjections, first = x)
-###consistentWithInjections = str_remove(consistentWithInjections, ".rawoutput.txt.hdf5newColumn_plate.hdf5.txt")
-
-
-
-###injectionOrders <- list.files(config$injectionLists, full.names = T)
-###injectionOrders = mixedsort(injectionOrders)
-
-#if(myMassTest == 182.1234) {
-#	write.table(injectionOrders, file = paste(config$metabolomicsRoot, "/injectionOrdersCitrulline.txt", sep = ""))
-#}
-
-###allInjections = vector()
-###labelBatches = vector()
-###for(f in 1:length(injectionOrders)) {
-###  injectionOrder = read.table(injectionOrders[f], sep = ",", header = TRUE, stringsAsFactors = FALSE)
-###  myOrder = injectionOrder$File.Name
-###  myOrder = sub(" ", "_", myOrder)
-###  for(a in 1:length(myOrder)) {
-###    if(substr(myOrder[a], start = 1, stop = 4) != "HILI") {
-###      myOrder[a] = paste("HILIC_", myOrder[a], sep="")
-###    }
-###  }
-###  myOrder = myOrder[myOrder %in% intersect(myOrder, consistentWithInjections)]
-###  labelBatches = c(labelBatches, rep(f, times=length(myOrder)))
-###  allInjections = c(allInjections, myOrder)
-###}
-
-###consistentWithInjections = consistentWithInjections[match(allInjections,consistentWithInjections)]
-
-#write.table(allInjections, file = paste(config$metabolomicsRoot, "/allInjections.txt", sep = ""))
 
 
 
 
 #pipeline for bounds goes here: outputs table where colnames are files and first row is intensity (first three columns are compound(mass), rt, x
 #Before running, need to initialize output table:
-
-##This needs  to be the list of all files (should add into yaml config file)
-
 
 
 fileList = read.table(args[2], header = T)$x
@@ -1204,26 +1086,23 @@ allInfoTableAllFiles = as.data.frame(allInfoTableAllFiles)
 #the files that we need in the subset
 colnames(allInfoTableAllFiles) =c("compound","rt", as.character(numberOfSampleFiles))
 
+#make boundary finder a function:
 
 
 #Pipeline for mass features:
+
+vecOfStarts = vector()
+
+boundaryFinder = function(myMassTest, allFiles) {
 for (i in 1:1)
 {
+  print(i)
   myMass = myMassTest
-  # myMass = 182.1230
   print(myMass)
   ppmAllowed = .0000025
   rangeAllowed = ppmAllowed * myMass
     
   myMassTest = myMass
-
- 
-  #allDataDirectory = currentDir
-  #massSubDirectory = paste(allDataDirectory, "/", myMassTest, sep = "")
-  #fullFileName = paste(allDataDirectory, "/", myMassTest,"/", myMassTest,"merged.txt", sep = "")
-    
-
-    
   
   mySubset<- allFiles
   
@@ -1239,20 +1118,17 @@ for (i in 1:1)
   mySubset$polarity = NULL
   mySubset$massspectype = NULL
   mySubset$newMass = NULL
-  #set colnames to make them consistent with other code
-  #colnames(mySubset) = c("mass", "intensity", "scan", "file")
   mySubset$Mstype = NULL
+  #set colnames to make them consistent with other code
   colnames(mySubset) = c("file", "mass", "intensity", "scan")
   #currently unused, will store final results after running anovalign
   mySubset = mySubset[order(mySubset$file),]
-  tableOfAnovalignAdjusted = colnames(mySubset)
   
   #remove the region of the retention time data referred to as "the void" - typically only low quality signals exist in this region
   mySubset = mySubset[mySubset$scan > 200,]
   #copy of data to be used for graphing at the end of the boundary-finding. signals are iteratively removed from MySubset
   #In order to avoid recapturing the same signal again and again.
   mySubsetOG = mySubset
-  
   #exit condition for the while loop.
   #turns to false if signal/noise of new peak is low, or if the highest signal in the peak is 15% of the original signal
   lastPeakGood = TRUE
@@ -1268,7 +1144,7 @@ for (i in 1:1)
   #While loops that iteratively isolates peaks until an exit condition is hit (lastPeakGood)
   while (lastPeakGood) {
     print("iterating!")
-    
+    print(head(mySubsetOG))
     #calculate signal background using the bottom 15 percent
     # signalBackground <-
     # mean(mySubset$intensity[mySubset$intensity < quantile(mySubset$intensity, probs = .15)])
@@ -1289,6 +1165,12 @@ for (i in 1:1)
     # print(length(mySubset$intensity))
     vecOfMaxesList <- scanMaxesPerFile(mySubset, "multiPeak")
     
+
+    if(length(vecOfMaxesList[[1]]) < 1 | length(vecOfMaxesList[[2]]) < 1) {
+	print("vecOfMaxes length < 1")
+	return("vecOfMaxesFail")
+    }
+
     #is the "top half" and "bottom half" sufficiently different?
     if (abs(mean(vecOfMaxesList[[1]]) - mean(vecOfMaxesList[[2]])) > 400) {
       # print(paste("sample ", i, " is a multipeak"))
@@ -1358,7 +1240,6 @@ for (i in 1:1)
     else {
       print("going into else statement")
       
-      #make singlePeakEvaluator
       #There exist two conditions for keeping a peak for plotting
       #1. Is max intensity >15% of original max intensity.
       #2. Is signal/background of the peak > 3? Is the mean of the middle 2/3 of intensities in the peak 3x the value
@@ -1409,10 +1290,23 @@ for (i in 1:1)
       }
     }
   }
+  }
+   return(list(vecOfStarts, vecOfStops))
+  }
+  bounds = boundaryFinder(myMassTest, allFiles)
+  if(!is.numeric(bounds)) {
+	print("non numeric bounds after boundary finder one: setting to 0,3000")
+	bounds[1] = list(0)
+	bounds[2] = list(3000)
+  }
+  vecOfStarts = bounds[[1]]
+  vecOfStops = bounds[[2]]
+
+
   #Ordering the starts and stops to make the subsequent merging work
   vecOfStarts <- vecOfStarts[order(vecOfStarts, decreasing = F)]
   vecOfStops <- vecOfStops[order(vecOfStops, decreasing = F)]
-  
+
   #initialize vectors for final bounds to be plotted
   vecOfStartsFinal <- vector()
   vecOfStopsFinal <- vector()
@@ -1426,9 +1320,14 @@ for (i in 1:1)
   vecOfStartsFinal <- listOfFinalBounds[[1]]
   vecOfStopsFinal <- listOfFinalBounds[[2]]
   
-
-  table1Original = mySubsetOG
+  table1Original = allFiles
+  table1Original$polarity = NULL
+  table1Original$massspectype = NULL
+  table1Original$Mstype = NULL
+  colnames(table1Original) = c("file", "mass", "intensity", "scan", "newMass")
   
+  
+  print(head(table1Original))
   
   if(!(is.numeric(vecOfStartsFinal))){
     vecOfStartsFinal = 0
@@ -1437,8 +1336,6 @@ for (i in 1:1)
     vecOfStopsFinal = 3000
   }
   
-  print(vecOfStartsFinal)
-  print(vecOfStopsFinal)
   
   
   
@@ -1449,45 +1346,99 @@ for (i in 1:1)
     
     start1 = vecOfStartsFinal[i]
     stop1 =  vecOfStopsFinal[i]
-    
+    #pdf('/home/lconnelly/Metabolomics/test.pdf')
     segment1 = table1Original[table1Original$scan > start1 & table1Original$scan < stop1,]
-    #segment1 = segment1[segment1$Intensity > quantile(segment1$Intensity, p = .9),]
+    
+
+    name = paste(args[3], '/', vecOfMasses, ".pdf", sep = "")
+
+    pdf(name)
+    plot(segment1$mass, segment1$intensity, main = "before isolock")
+    plot(segment1$newMass, segment1$intensity, main = "after isolock")
+    #plot(segment1$scan, segment1$intensity)
+    #abline(v = start1)
+    #abline(v = stop1)
+
+
+#segment1 = segment1[segment1$Intensity > quantile(segment1$Intensity, p = .9),]
+    #print(head(segment1))
+    lengthBefore = length(segment1$mass)
+   print(length(segment1$mass))
+   print(" ^^^^ is length of data before anovalign")
     segment1 = generalizeWarping(segment1)
-    
-    print(head(segment1))
-    #run anovAlign on the segment now!
-    
-    #segment1$Mstype = NULL
-    #segment1$polarity= NULL
+    #plot(segment1$mass, segment1$intensity, main = "after anovalign")
+    #plot(segment1$scan, segment1$intensity, main = "after anovalign")
+    #dev.off()
+    #run anovAlign on the segment now! We want to re-run boundary finder here to get tighter bounds
+    lengthAfter = length(segment1$mass)
+    print(length(segment1$mass))
+    print(" ^^^^ is length of data after anovalign")
+    #print(head(segment1))
+    #if(lengthBefore > 2*lengthAfter) {
+    #    segment1 = table1Original[table1Original$scan > start1 & table1Original$scan < stop1,]
+    #}
+    colnames(segment1) = c("file", "mass", "Intensity", "scan", "newMass")
+    if(!(lengthBefore > 2*lengthAfter)) {
+	 bounds = boundaryFinder(myMassTest, segment1)
+    }else{
+	bounds = c(start1, stop1)
+    }
+    if(!(is.numeric(bounds))) {
+	print("made it inside non-numeric bound checker")
+	bounds = c(start1, stop1)
+    }
+    print("After boundary finder 2:")
+    print(bounds)
+    segment1 = segment1[segment1$scan > bounds[[1]][i] & segment1$scan < bounds[[2]][i],]
+    anovalignLeftBound = bounds[[1]][i]
+    #print(paste("here is anovalignLeftBound", anovalignLeftBound))
+    anovalignRightBound = bounds[[2]][i]
+    #print(paste("here is anovalignRightBound", anovalignRightBound))
+    #print("data after subsetting by newly-identified bounds:")
+    #print(head(segment1))
+    segment1$newMass = NULL
+    #print(length(segment1$scan))
+    #print("^^^ is length of data after boundary finder 2")
+    #print(head(segment1))
     tableForRegion = callAllOtherFxns(segment1)
     allInfoTableAllFiles = rbind(allInfoTableAllFiles,tableForRegion)
   } 
 
 ###three stars = old iteration
 
-name = paste(args[3], '/', vecOfMasses, ".pdf", sep = "")
+#name = paste(args[3], '/', vecOfMasses, ".pdf", sep = "")
 
-###myMass = myMassTest
+print("here is segment1:")
+print(head(segment1))
 
-pdf(name)
-###print(head(segment1))
-plot(segment1$scan, segment1$intensity, main = "ANOVALIGN")  
 
-}
+#pdf(name)
 
+print("test:")
+print(anovalignLeftBound)
+print(anovalignRightBound)
+
+
+plot(segment1$scan, segment1$Intensity, main = "ANOVALIGN", xlim=c(0,3000))
+abline(v = anovalignLeftBound, col = "green")
+abline(v = anovalignRightBound, col = "green")  
+
+
+
+print(paste(args[4], "/", vecOfMasses, ".txt", sep = ""))
 
 write.csv(allInfoTableAllFiles, file =paste(args[4], "/", vecOfMasses, ".txt", sep = ""), row.names=F)
 
 
 
 #Now we have the allInfoTableAllFiles
-#cols = compound, rt, (x?), [files in order of injection]
-#row1 = sum of intensity within RT bounds + 5ppm
+#cols = compound, rt, [files in order of injection]
+#row1 = sum of intensity within RT bounds +- 2.5ppm
 
 
 
-plot(allFiles$newMass, allFiles$Intensity, main = "10PPM Window")
-abline(v = myMass, col = "green")
+plot(allFiles$newMass, allFiles$Intensity, main = "+-10PPM Window")
+abline(v = myMassTest, col = "green")
 
 plot(allFiles$scan, allFiles$Intensity)
 abline(v = vecOfStartsFinal[1], col = "green")
@@ -1496,102 +1447,6 @@ abline(v = vecOfStopsFinal[1], col = "green")
 dev.off()
 
 
-###start = 6
-###for(p in 1:5)
-###{
-###	if(colnames(allInfoTableAllFiles)[p] != "compound" & colnames(allInfoTableAllFiles)[p] != "rt" & colnames(allInfoTableAllFiles)[p] != "x"){
-###		if(start > p){
-###		start = p
-###		}
-###	} 
-###}
-
-###vecOfIntensities <- allInfoTableAllFiles[1, start:length(colnames(allInfoTableAllFiles))]
-###vecOfIntensities <- as.numeric(vecOfIntensities[1, ])
-###vecOfIntensities <- as.data.frame(vecOfIntensities)
-###vecOfIntensities$names <- colnames(allInfoTableAllFiles)[start:length(colnames(allInfoTableAllFiles))]
-#vecOfIntensities$standard = vecOfMasses
-#write.csv(vecOfIntensities, file = paste(config$metabolomicsRoot, "/vecOfIntensities/",vecOfMasses.txt, sep = ""))
-
-#vecOfIntensities$vecOfIntensities <- log10(vecOfIntensities$vecOfIntensities + 1)
-
-
-
-
-#write.csv(vecOfIntensities, file = "/home/lconnelly/Metabolomics/newVecOfIntensitiesCitrullineEndogenou.txt", row.names=F)
-
-###plot(as.numeric(vecOfIntensities$vecOfIntensities), main = "STANDARD BEING TESTED")
-
-
-
-
-###vecOfIntensitiesCitrulline <- read.table(paste(config$metabolomicsRoot, "/newVecOfIntensitiesCitrulline.txt", sep=""), header = T, sep = ",")
-
-
-#vecOfIntensitiesCitrulline$vecOfIntensities <- log10(vecOfIntensitiesCitrulline$vecOfIntensities + 1)
-
-
-###vecOfIntensities <- vecOfIntensities[vecOfIntensitiesCitrulline$names %in% vecOfIntensities$names,]
-###vecOfIntensities <- vecOfIntensities[vecOfIntensities$names %in% vecOfIntensitiesCitrulline$names,]
-
-
-
-###vecOfIntensitiesCitrulline <- vecOfIntensitiesCitrulline[vecOfIntensitiesCitrulline$names %in% vecOfIntensities$names,]
-###vecOfIntensitiesCitrulline <- vecOfIntensitiesCitrulline[vecOfIntensities$names %in% vecOfIntensitiesCitrulline$names,]
-
-
-###print(length(vecOfIntensities$vecOfIntensities))
-###print(vecOfIntensities$names[800])
-
-###print(length(vecOfIntensitiesCitrulline$vecOfIntensities))
-###print(vecOfIntensitiesCitrulline$names[800])
-
-
-
-#print(head(vecOfIntensitiesCitrulline))
-
-###plot(as.numeric(vecOfIntensitiesCitrulline$vecOfIntensities), main = "CITRULLINE CONTROL")
-
-#allFiles = allFiles[allFiles$Intensity > quantile(allFiles$Intensity, probs = .90),]
-
-#allFiles = allFiles %>% filter(newMass > myMassTest-(myMassTest*.0000025) & newMass < myMassTest+(myMassTest*.0000025))
-
-###print(cor(as.numeric(vecOfIntensities$vecOfIntensities), as.numeric(vecOfIntensitiesCitrulline$vecOfIntensities)))
-
-
-
-###if(cor(vecOfIntensities$vecOfIntensities, vecOfIntensitiesCitrulline$vecOfIntensities) > .6) {
-###	fileOutput = paste(vecOfMasses,"anovalign_july30_all_standards_comprehensive_PASS.txt", sep = "-" )
-###	write.table(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/outputCorrelations/",fileOutput,sep=""))
-###}else{
-###	fileOutput = paste(vecOfMasses,"anovalign_july30_all_standards_comprehensive_FAIL.txt", sep = "-" )
-###	write.table(allInfoTableAllFiles, file = paste("/home/lconnelly/Metabolomics/outputCorrelations/",fileOutput,sep=""))
-###
-###}
-
-
-
-#vecOfIntensities= vector()
-#for(i in 1:length(consistentWithInjections)) {
-#        file = allFiles[grepl(consistentWithInjections[i], allFiles$File),]
-#	intensitySum = sum(file$Intensity)
-#	vecOfIntensities = c(vecOfIntensities, intensitySum)
-#}
-
-
-#if(myMassTest == 182.1234) {
-#	write.table(vecOfIntensities, file = paste(config$metabolomicsRoot, "/vecOfIntensitiesCitrulline.txt", sep = ""))
-#}
-
-
-###dev.off()
-
-#if(myMassTest == 182.1234) {
-#	write.table(consistentWithInjections, file = paste(config$metabolomicsRoot, "/indexForInjectionPlotCitrulline.txt", sep = ""))
-#}
-
-
-  #write.table(isoInfo,file = QCInfo, sep = "\t", row.names = FALSE)
 
 
 

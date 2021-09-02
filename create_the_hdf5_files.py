@@ -1,37 +1,29 @@
 import vaex
-import numpy as np
-import sys, getopt
-from functools import reduce
+import sys
 import pandas as pd
 import os
-import yaml
+#numpy functool getopt removed
 
 theCommands = sys.argv[1]
 testFile = theCommands.split(',')
 print(testFile)
 
 
+#output path example
 #/home/lconnelly/Metabolomics/outputs/hdf5Files/Analysis1
 outputPath = sys.argv[2]
 
 
-#runNumber = sys.argv[3]
 
-#with open("/home/lconnelly/Metabolomics/Config.yaml") as file:
-#	config = yaml.safe_load(file)
 
 
 #loop through the array of files
 for i in testFile:
 	file = i
+	#example file
 	#file = /home/lconnelly/Metabolomics/rawDataFiles/Analysis1/file1.txt
-
 	basename = os.path.basename(file)
-
-
 	file2 = basename + ".hdf5"
-#	file2 = file2.replace("rawDataFiles", "hdf5Files")
-
 	outputPath = outputPath + '/' + file2
 	print(file)
 	df = pd.read_csv(file, sep=' ')

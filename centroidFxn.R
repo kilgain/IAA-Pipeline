@@ -1,5 +1,4 @@
 
-
 args = commandArgs(trailingOnly = T)
 
 
@@ -70,29 +69,16 @@ centroidFxn= function(centroidTestBroad)
 }
 
 
-#args = commandArgs(trailingOnly = T)
-
-#write.table(args, file = "/home/lconnelly/Metabolomics/printCentroidArgs.txt")
-
-
+#for validating correct arg was passed
 print(args[1])
 
-
 outputPath = args[2]
-
-#args = paste("/home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/autocredentialCutoffs/", args, sep="")
 
 masses = scan(args[1])
 
 masses = centroidFxn(masses)
 
 print(length(masses))
-
-#cutoff = gregexpr(pattern = "_true", args[1])
-#cutoff = substr(args[1], cutoff[[1]][1], nchar(args[1]))
-#cutoff = substr(cutoff, 7, nchar(cutoff))
-
-
 
 write.table(masses, file=paste(outputPath, '/', basename(args[1]),  "centroidMasses.txt", sep=""), row.names=F)
 
