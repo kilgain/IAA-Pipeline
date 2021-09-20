@@ -1,0 +1,11 @@
+samplesDirectory: /home/lconnelly/Metabolomics/rawDataFiles
+pathToInputValidator.sh: /home/lconnelly/Metabolomics/step1Conversion/inputValidator.sh
+pathToFileAdd.R: /home/lconnelly/Metabolomics/step1Conversion/fileAdd.R
+pathToParallelizeTheFilesConversion.sh: /home/lconnelly/Metabolomics/step1Conversion/parallelize_the_Files_conversion.sh
+pathToCreateHdf5Files.py: /home/lconnelly/Metabolomics/step1Conversion/create_the_hdf5_files.py
+referenceFile: /home/lconnelly/Metabolomics/hdf5Files/extract_1in20_1_HILIC_1-1.rawoutput.txt.hdf5
+metabolomicsRoot: /home/lconnelly/Metabolomics
+injectionLists: /home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/step4Subset/step5Merge/InjectionLists
+tempFiles: /home/lconnelly/Metabolomics/step1Conversion/step2Isolock/step3Autocredential/step4Subset/tempFiles
+fileList: /home/lconnelly/Metabolomics/updated_file_list.txt
+polarity: both
