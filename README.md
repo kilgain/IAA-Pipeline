@@ -83,7 +83,7 @@ Scripts to run Isolock/Autocredential/Anovalign
   
 # Step 9: Find Mass Features:
 
-  - Note: This step requires a text file which contains the names of all your files in the following format:
+  - Note1: This step requires a text file which contains the names of all your files in the following format:
   
   "x"
   
@@ -92,6 +92,8 @@ Scripts to run Isolock/Autocredential/Anovalign
   file2.rawoutput.txt
   
   ...
+  
+  - Note2: "tempFileDirectory" refers to a subdirectory within your Step 8 outputDirectory. The name of this directory should be a number that represents the mass of a putative feature.
 
   - How to run on command line using newestAnovalign.R:
   
