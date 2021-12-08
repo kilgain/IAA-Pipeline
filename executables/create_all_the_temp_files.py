@@ -12,7 +12,7 @@ fileRead = sys.argv[1]
 
 testMasses = pd.read_csv(sys.argv[2])
 
-polarity = sys.argv[4]
+#polarity = sys.argv[4]
 
 
 
@@ -24,7 +24,7 @@ fileRead = str(fileRead)
 dv = vaex.open(fileRead)
 
 #loop through the array of masses and subset out all data within 20 ppm. Export the file.
-dv = dv[dv.polarity == str(polarity)]
+#dv = dv[dv.polarity == str(polarity)]
 for i in testMasses:
 	#print(i)
 	i = float(i)

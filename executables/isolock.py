@@ -3,6 +3,7 @@ import numpy as np
 import sys, getopt
 from functools import reduce
 import yaml
+import os.path
 
 theCommands = sys.argv[1]
 testFile = theCommands.split(',')
@@ -10,7 +11,7 @@ testFile = testFile[0]
 
 referenceFile = sys.argv[2]
  
-
+outputPath = sys.argv[3]
 
 reference = vaex.open(referenceFile)
 
@@ -57,7 +58,9 @@ queryVaex['newMass'] = queryVaex['Mass'] - offset*.000001*queryVaex['Mass']
 
 #export the vaex file with the added column now
 #vaexOpen = /home/lconnelly/Metabolomics/outputs/hdf5Files/Analysis1/file1.txt.hdf5
-vaexOpen = vaexOpen.replace("hdf5Files", "hdf5FilesNewColumn")
+#vaexOpen = vaexOpen.replace("hdf5Files", "hdf5FilesNewColumn")
 
-vaexOpenWrite=vaexOpen + "newColumn_plate.hdf5"
-queryVaex.export_hdf5(vaexOpenWrite)
+outputPath = outputPath + "/" +  os.path.basename(vaexOpen) + "newColumn_plate.hdf5"
+
+#vaexOpenWrite=vaexOpen + "newColumn_plate.hdf5"
+queryVaex.export_hdf5(outputPath)

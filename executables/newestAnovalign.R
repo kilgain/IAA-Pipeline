@@ -761,7 +761,7 @@ for(i in 1:length(vecOfStartsFinal))
 
 
 
-write.csv(allInfoTableallFiles, file =paste(args[4], "/", vecOfMasses[1], ".txt", sep = ""), row.names=F)
+write.csv(allInfoTableallFiles, file =paste(args[3], "/", vecOfMasses[1], ".txt", sep = ""), row.names=F)
 
 
 

@@ -24,7 +24,7 @@ root = '/home/lconnelly/MetabolomicsNewDeployment'
 runNumber = 'testFullPipelineIsoNew'
 
 #	 0 1 2 3 4 5 6 7 8 9 10
-toRun = [1,1,1,1,0,1,0,1,0,1,0]
+toRun = [1,1,1,0,0,0,0,0,0,0,0]
 runRawFileProcessing = True
 
 #note, initialization should always be set to 1
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 		print(directoryOfRawFiles, 'is the raw file directory')
 		rawFiles = glob.glob(directoryOfRawFiles+'/*/*HILIC*/*.raw', recursive = True)
 		#TESTING:
-		rawFiles = rawFiles[0:6]
+		rawFiles = rawFiles[0:8]
 		print('HERE IS LENGTH OF RAWFILES:', len(rawFiles))
 		####
 		print(rawFiles[0], 'is the first rawFile')
@@ -215,7 +215,7 @@ if __name__ == "__main__":
 	
 
 		for f in files:
-			processed.append(client.submit(runPythonScript, root + "/executables/isolock.py", f, refFile))
+			processed.append(client.submit(runPythonScript, root + "/executables/isolock.py", f, refFile, outputPath))
 		print('Running Isolock!')
 		progress(processed)
 		client.gather(processed)
@@ -393,7 +393,7 @@ if __name__ == "__main__":
 		client = Client(cluster)
 		processed = []
 		for f in files:
-			processed.append(client.submit(runPythonScript, root + "/executables/create_all_the_temp_files.py", f, maxMass, outputPath, "Positive"))
+			processed.append(client.submit(runPythonScript, root + "/executables/create_all_the_temp_files.py", f, maxMass, outputPath))
 		print('Making Positive Mode Masses Temp Files!')
 		progress(processed)
 		client.gather(processed)
@@ -433,7 +433,7 @@ if __name__ == "__main__":
 		client = Client(cluster)
 		processed = []
 		for f in files:
-			processed.append(client.submit(runPythonScript, root + "/executables/create_all_the_temp_files.py", f, maxMass, outputPath, "Negative"))
+			processed.append(client.submit(runPythonScript, root + "/executables/create_all_the_temp_files.py", f, maxMass, outputPath))
 		print('Making Negative Mode Masses Temp Files!')
 		progress(processed)
 		client.gather(processed)
@@ -469,7 +469,7 @@ if __name__ == "__main__":
 		processed = []
 
 		for m in massDirectories:
-			processed.append(client.submit(runScript, root + "/executables/newestAnovalign.R", m, config['fileList'], plotPath, vecOfIntensitiesPath))
+			processed.append(client.submit(runScript, root + "/executables/newestAnovalign.R", m, config['fileList'], vecOfIntensitiesPath))
 		print('Finding Positive Mode Mass Feature Profiles!')
 		progress(processed)
 		client.gather(processed)
@@ -497,7 +497,7 @@ if __name__ == "__main__":
 		client = Client(cluster)
 		processed = []
 		for m in massDirectories:
-			processed.append(client.submit(runScript, root + "/executables/newestAnovalign.R", m, config['fileList'], plotPath, vecOfIntensitiesPath))
+			processed.append(client.submit(runScript, root + "/executables/newestAnovalign.R", m, config['fileList'], vecOfIntensitiesPath))
 		print('Finding Negative Mode Mass Feature Profiles!')
 		progress(processed)
 		client.gather(processed)
