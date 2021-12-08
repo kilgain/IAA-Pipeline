@@ -1,2 +1,0 @@
-# MassSpec
-yeast standard identification
