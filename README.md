@@ -85,8 +85,11 @@ Scripts to run Isolock/Autocredential/Anovalign
 
   Note: This step requires a text file which contains the names of all your files in the following format:
   "x"
+  
   file1.rawoutput.txt
+  
   file2.rawoutput.txt
+  
   ...
 
   How to run on command line using newestAnovalign.R:
