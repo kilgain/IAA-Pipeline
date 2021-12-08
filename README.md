@@ -84,6 +84,7 @@ Scripts to run Isolock/Autocredential/Anovalign
 # Step 9: Find Mass Features:
 
   Note: This step requires a text file which contains the names of all your files in the following format:
+  
   "x"
   
   file1.rawoutput.txt
