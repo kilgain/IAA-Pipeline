@@ -14,7 +14,7 @@ Scripts to run Isolock/Autocredential/Anovalign
 
 - The first line of the yml file sets the new environment's name. 
 
-- Activate the new environment: conda activate IAA
+- Activate the new environment: `conda activate IAA`
 
 - Verify that the new environment was installed correctly:
     `conda env list`
