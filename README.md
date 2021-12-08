@@ -59,7 +59,7 @@ Scripts to run Isolock/Autocredential/Anovalign
 
   How to run on command line using autocredentialVaex.py:
   
-  `python /path/to/autocredentialVaex.py "polarity" /path/to/directoryOfInputFiles /path/for/positiveModeOutputDirectory /path/for/negativeModeOutputDirectory`
+  `python /path/to/autocredentialVaex.py "polarity" /path/to/directoryOfIsolockOutputFiles /path/for/positiveModeOutputDirectory /path/for/negativeModeOutputDirectory`
   
   Example output: soon™
   
