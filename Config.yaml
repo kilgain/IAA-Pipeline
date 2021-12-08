@@ -1,6 +1,0 @@
-samplesDirectory: /home/lconnelly/MetabolomicsNewDeployment/rawDataFiles
-referenceFile: /home/lconnelly/Metabolomics/hdf5Files/extract_1in20_1_HILIC_1-1.rawoutput.txt.hdf5
-metabolomicsRoot: /home/lconnelly/MetabolomicsNewDeployment
-injectionLists: /home/lconnelly/Metabolomics/InjectionLists
-fileList: /home/lconnelly/Metabolomics/updated_file_list.txt
-polarity: both
