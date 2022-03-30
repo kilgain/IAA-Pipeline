@@ -21,21 +21,15 @@ def runMono(x,y,z='', xx=''):
 
 
 #root = directory which contains dask script
+#example:
 root = '/home/lconnelly/MetabolomicsNewDeployment'
 
 #all outputs will be sorted based on this run number
 runNumber = 'DOE'
 
+#select which steps to run
 #	 0 1 2 3 4 5 6 7 8 9 10
-toRun = [0,0,1,0,0,0,0,0,0,0,0]
-
-#Converts .raw files to text files (skip if raw files have already been processed)
-runRawFileProcessing = False
-
-
-#Determine noise cutoff automatically, or manually input a value (multiples of 10. 10 is enough for small sample sizes. Manual used if autoSelect is False.)
-autoSelect = False
-value = '40'
+toRun = [1,0,1,0,0,0,0,0,0,0,0]
 
 
 #note, initialization should always be set to 1
@@ -52,6 +46,17 @@ value = '40'
 #9 - massFeature for positive
 #10- massFeature for negative
 
+#Converts .raw files to text files (skip if raw files have already been processed)
+runRawFileProcessing = False
+
+#Determine noise cutoff automatically, or manually input a value (multiples of 10. 10 is enough for small sample sizes. Manual used if autoSelect is False.)
+autoSelect = False
+value = '40'
+
+
+
+
+
 if __name__ == "__main__":
 
 	if not os.path.exists(root + "/outputs/runTimes/" + runNumber):
@@ -59,37 +64,25 @@ if __name__ == "__main__":
 
 
 	with open("/home/lconnelly/MetabolomicsNewDeployment/Config.yaml", "r") as file:
-		print(type(file))
 		config = yaml.safe_load(file)
 	if runRawFileProcessing:
 		start = time.perf_counter()
 		with open("/home/lconnelly/MetabolomicsNewDeployment/Config.yaml", "r") as file:
 			config = yaml.safe_load(file)
-		directoryOfRawFiles = '/home/ahubbard/all_setaria_and_sorghum_raw_files_to_backup/Setaria_Sorghum_Metabolomics'
-		#directoryOfRawFiles = '/home/ahubbard/Metabolomics/rawDataFiles/testShrikaar'		
-		#directoryOfRawFiles = '/home/ahubbard/ChengZhao_Carnegie'
 
-		#directoryOfRawFiles = root + '/rawDataFiles/' + runNumber
+		directoryOfRawFiles = root + '/rawDataFiles/' + runNumber
 		print(directoryOfRawFiles, 'is the raw file directory')
 
-		#for HILIC
-		#rawFiles = glob.glob(directoryOfRawFiles+'/*/*HILIC*/*.raw', recursive = True)
-
-		#for RPLC
-		rawFiles = glob.glob(directoryOfRawFiles+'/*/*RPLC*/*.raw', recursive = True)
-		#rawFiles = [os.path.join(directoryOfRawFiles, file) for file in os.listdir(directoryOfRawFiles)]		
+		#should be a list  of paths to each individual .raw file
+		rawFiles = [os.path.join(directoryOfRawFiles, file) for file in os.listdir(directoryOfRawFiles)]		
 
 
-
-                #TESTING:
-		#rawFiles = rawFiles[0:8]
-		#print('HERE IS LENGTH OF RAWFILES:', len(rawFiles))
-		####
 		print(rawFiles[0], 'is the first rawFile')
-		print(rawFiles[1], 'is second rawFile')
 		outputDirectory = root + '/outputs/processedRawFiles/' + runNumber
-		print(outputDirectory, 'is where the processes .raw files will be located')
+		print(outputDirectory, 'is where the processed .raw files will be located')
 		
+
+		#check for any previous outputs, dont rerun them
 		if os.path.exists(outputDirectory):
 			print('processed raw files detected, only running files not present in output directory')
 			rawFilesBasename = []
@@ -106,10 +99,10 @@ if __name__ == "__main__":
 			for path in range(len(rawFilesToProcess)):
 				rawFiles.append(list(pathData['fullPath'][pathData['basename'] == rawFilesToProcess[path]])[0])
 
-
+		#create output directory
 		if not os.path.exists(outputDirectory):
 			os.makedirs(outputDirectory, exist_ok=True)
-		print('LENGTH OF RAW FILES TO BE PROCESSED:', len(rawFiles))
+		print('number of raw files to be processed:', len(rawFiles))
 		cluster = HTCondorCluster(n_workers = 1, cores=1, memory = "8 GB", disk = "4 GB",local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True})
 		cluster.scale(jobs = 250)
 		client = Client(cluster)
@@ -132,14 +125,14 @@ if __name__ == "__main__":
 
 	#Step1: Add File Column and Collapse Duplicate Masses
 	if toRun[0]:
-		#initiates job cluster (for Condor)
+		#initiates job cluster (for Condor), these are the resources per worker
 		cluster = HTCondorCluster(n_workers = 1, cores=1, memory = "8 GB", disk = "4 GB",local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True})
 		with open("/home/lconnelly/MetabolomicsNewDeployment/Config.yaml", "r") as file:
 			config = yaml.safe_load(file)
 		initConfig = root  + '/outputs/processedRawFiles/' +  runNumber
 		print(initConfig, "is config path")
 		files = os.listdir(initConfig)
-		#sets job cluster size equal to number of files
+		#sets number of workers
 		cluster.scale(jobs = 250)
 		#initiates job client that assigns jobs using created cluster
 		client = Client(cluster)
@@ -154,7 +147,6 @@ if __name__ == "__main__":
 			if not '"File"' in line1:
 				filesToRun.append(initConfig + '/' + f)
 
-		#if not '"File"' in line1:
 		#submits all files for formatting
 		if len(filesToRun) > 0:
 			for f in filesToRun:
@@ -206,9 +198,7 @@ if __name__ == "__main__":
 		for path in range(len(filesToProcess)):
 			files.append(list(pathData['fullPath'][pathData['basename'] == filesToProcess[path]])[0])
 
-		print(len(files), 'is length of input for conversion after set operations')
-		print("is output directory")
-		print(outputPath)
+		print(len(files), 'is length of input for conversion after checking for old outputs')
 
 		for f in files:
 			processed.append(client.submit(runPythonScript, root + "/executables/create_the_hdf5_files.py", f, outputPath))
@@ -233,7 +223,7 @@ if __name__ == "__main__":
 	if toRun[2] == 1:
 
 		start = time.perf_counter()
-		cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True}, log_directory = '/home/lconnelly/MetabolomicsNewDeployment/logs')
+		cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True})
 		cluster.scale(jobs = 300)
 		client = Client(cluster)
 		processed = []
@@ -241,16 +231,19 @@ if __name__ == "__main__":
 		files = os.listdir(root + '/outputs/hdf5Files/' + runNumber)
 		files = [root + '/outputs/hdf5Files/' + runNumber + '/' + f for f in files]
 		refFile = files[0]
-		#refFile = '/home/lconnelly/MetabolomicsNewDeployment/outputs/hdf5Files/DOE/HILIC_Set_1342_3_3_H11_85_TB_setaria_12_0127.rawoutput.txt.hdf5'
-		#refFile = '/home/lconnelly/MetabolomicsNewDeployment/outputs/hdf5Files/broadDataTest/0411_XAV_iHMP2_HIL-SM-7MCUF.rawoutput.txt.hdf5'
+		#can manually changed the reference file used here:
+		#refFile = '/path'
 
+
+		#the reference file used will be stored in a text file in the root directory
+		#refFileForIsolockRunNumber.txt
 		outFileLocation = root + '/refFileForIsolock' + runNumber + '.txt'
 		with open(outFileLocation, "w") as fileOut:
 			fileOut.write(refFile)
 		fileOut.close()
 		
 		print(refFile)
-		print("is refFile")
+		print("^ is refFile ^")
 
 
 
@@ -292,11 +285,6 @@ if __name__ == "__main__":
 
 
 		path = root + '/outputs/hdf5FilesNewColumn/' + runNumber
-		#inputFiles = os.listdir(path)
-		#inputFiles = [path + '/' + f for f in inputFiles]
-
-		#print(inputFiles[0])
-		#print('is first input for autocred')
 
 
 		outputPathPositive = root + "/outputs/autocredentialPositive/" + runNumber
@@ -318,7 +306,7 @@ if __name__ == "__main__":
 		client.shutdown()
 		
 
-		#stitch together chunks
+		#output is in chunks, need to stitch together chunks
 		allOutputs = os.listdir(outputPathPositive)
 		for i in range(10,201,10):
 			output = root + '/outputs/autocredentialPositive/' + runNumber + '/DOE_autocredential_isopairs_polarity_positive_' + str(i) + '.txt'
@@ -517,33 +505,15 @@ if __name__ == "__main__":
 		
 		start = time.perf_counter()
 		root = config['metabolomicsRoot']
-		#files = os.listdir(root + "/outputs/hdf5FilesNewColumn/" + runNumber)
-		#files = [root + "/outputs/hdf5FilesNewColumn/" + runNumber + "/"  + f for f in files]		
 
-
+		
+		#used for auto selection of noise cutoff
 		rawFiles = os.listdir(root + "/outputs/processedRawFiles/" + runNumber)
 		fileToUse = [root + "/outputs/processedRawFiles/" + runNumber + '/' + f for f in rawFiles]
-		
-
-		#for testing:
-		#rawFiles = os.listdir(root + "/outputs/processedRawFiles/" + DOE)
-		#fileToUse = [root + "/outputs/processedRawFiles/DOE" + '/' + f for f in rawFiles]
-
 		fileToUse = fileToUse[0]
 
 
-		#select which cutoff value to use from autocredential
-		#centroidMasses = config['metabolomicsRoot']
-		#centroidMasses = centroidMasses + "/outputs/centroidFxnPositive/" + runNumber
-		#massFiles = os.listdir(centroidMasses)
-		#massFiles = [centroidMasses + "/" + s for s in massFiles]	
-		#maxMass = max(massFiles, key = lambda x: os.stat(x).st_size)
-		
-		
 		#can manually change this path to choose cutoff manually
-		#maxMass = '/home/lconnelly/MetabolomicsNewDeployment/outputs/centroidFxnPositive/broadData/DOE_autocredential_isopairs_polarity_positive_50.txtcentroidMasses.txt'
-		#maxMass = '/home/lconnelly/MetabolomicsNewDeployment/outputs/centroidFxnPositive/broadData/DOE_autocredential_isopairs_polarity_positive_40.txtcentroidMasses.txt'
-		
 		maxMass = root + '/outputs/centroidFxnPositive/' + runNumber + '/DOE_autocredential_isopairs_polarity_positive_' + value + '.txtcentroidMasses.txt'
 
 		#autoselect
@@ -568,13 +538,11 @@ if __name__ == "__main__":
 			os.makedirs(root + '/tempTextFiles', exist_ok=True)
 
 		
-		#maxMass = '/home/lconnelly/MetabolomicsNewDeployment/outputs/centroidFxnNegative/DOE/DOE_autocredential_isopairs_polarity_negative_10.txtcentroidMasses.txt'
-		
 		#Assign masses in maxmass to chunks
 		masses = pd.read_csv(maxMass)
 
 
-		cluster = HTCondorCluster(cores=1, n_workers=1, memory="8 GB", disk = "6 GB", local_directory="$_CONDOR_SCRATCH_DIR", log_directory = "/home/lconnelly/MetabolomicsNewDeployment/logs", job_extra={"getenv": True})
+		cluster = HTCondorCluster(cores=1, n_workers=1, memory="8 GB", disk = "6 GB", local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True})
 		cluster.scale(jobs = 300)
 		client = Client(cluster)
 		processed = []
@@ -602,11 +570,7 @@ if __name__ == "__main__":
 					processed.append(client.submit(runPythonScript, root + "/executables/create_all_the_temp_files_chunks.py", root + "/tempTextFiles/fToRun" + str(i) + ".txt", root + "/tempTextFiles/massesToRun" + element[0:10] + ".txt", outputPath))
 				#print('try succeeded for', str(i))
 			except Exception as e:
-				#if i == 95:
-					#print(str(e))
-				#print('failed for', str(i))
 				continue
-		print(len(processed))
 		print('Making Positive Mode Masses Temp Files!')
 		progress(processed)
 		print(processed)
@@ -620,11 +584,6 @@ if __name__ == "__main__":
 		f.writelines(str(runTime))
 		f.close() 	
 
-		#for i in range(95, 1205, 5):
-			#try:
-				#os.remove(root + "/tempTextFiles/fToRun" + str(i) + ".txt")
-			#except:
-				#continue
 
 	#Negative Mode TempFile Generation
 	
@@ -645,8 +604,6 @@ if __name__ == "__main__":
 	        #select which cutoff value to use from autocredential
 
                 #MANUAL SELECTION
-		#maxMass = '/home/lconnelly/MetabolomicsNewDeployment/outputs/centroidFxnNegative/ChengZhao_Carnegie/DOE_autocredential_isopairs_polarity_negative_5.txtcentroidMasses.txt'
-
 		maxMass = root + '/outputs/centroidFxnNegative/' + runNumber + '/DOE_autocredential_isopairs_polarity_negative_' + value + '.txtcentroidMasses.txt'
 
 		#auto select
@@ -723,10 +680,6 @@ if __name__ == "__main__":
 	if toRun[9] == 1:
 
 		start = time.perf_counter()
-		if not os.path.exists(config['metabolomicsRoot']+"/outputs/outputPdfsPositive/"+ runNumber):
-			os.makedirs(config['metabolomicsRoot']+"/outputs/outputPdfsPositive/"+runNumber, exist_ok=True)
-
-		plotPath = config['metabolomicsRoot']+"/outputs/outputPdfsPositive/"+ runNumber
 
 		if not os.path.exists(config['metabolomicsRoot']+"/outputs/vecOfIntensitiesForEachMassPositive/"+runNumber):
 			os.makedirs(config['metabolomicsRoot']+"/outputs/vecOfIntensitiesForEachMassPositive/"+runNumber, exist_ok=True)
@@ -740,14 +693,12 @@ if __name__ == "__main__":
 
 		print("here is first mass directory:", massDirectories[0])
 
-		cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True}, log_directory="/home/lconnelly/MetabolomicsNewDeployment/logs")
+		cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True})
 		cluster.scale(jobs = 300)
 		client = Client(cluster)
 		processed = []
 
 		for m in massDirectories:
-			#NOTE!!!! LINE CHANGED FOR TESTING
-			#processed.append(client.submit(runScript, root + "/executables/newestAnovalignChunks.R", m, root + "/outputs/processedRawFiles/DOE", vecOfIntensitiesPath))
 			processed.append(client.submit(runScript, root + "/executables/newestAnovalignChunks.R", m, root + "/outputs/processedRawFiles/" + runNumber, vecOfIntensitiesPath))
 		print('Finding Positive Mode Mass Feature Profiles!')
 		progress(processed)
@@ -768,10 +719,6 @@ if __name__ == "__main__":
 	if toRun[10] == 1:
 
 		start = time.perf_counter()
-		if not os.path.exists(config['metabolomicsRoot']+"/outputs/outputPdfsNegative/"+runNumber):
-			os.makedirs(config['metabolomicsRoot']+"/outputs/outputPdfsNegative/"+runNumber, exist_ok=True)
-		
-		plotPath = config['metabolomicsRoot']+"/outputs/outputPdfsNegative/"+runNumber
 
 		if not os.path.exists(config['metabolomicsRoot'] + "/outputs/vecOfIntensitiesForEachMassNegative/"+runNumber):
 			os.makedirs(config['metabolomicsRoot']+"/outputs/vecOfIntensitiesForEachMassNegative/"+runNumber, exist_ok=True)
@@ -781,7 +728,7 @@ if __name__ == "__main__":
 		massDirectories = os.listdir(root + "/outputs/tempFilesNegative/" + runNumber)
 		massDirectories = [root + '/outputs/tempFilesNegative/' + runNumber + '/' +  m for m in massDirectories]
 
-		cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory="$_CONDOR_SCRATCH_DIR", log_directory="/home/lconnelly/MetabolomicsNewDeployment/logs",  job_extra={"getenv": True})		
+		cluster = HTCondorCluster(cores=1, n_workers=1, memory="10 GB", disk = "4 GB", local_directory="$_CONDOR_SCRATCH_DIR", job_extra={"getenv": True})		
 		cluster.scale(jobs = 250)
 		client = Client(cluster)
 		processed = []
