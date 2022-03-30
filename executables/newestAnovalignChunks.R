@@ -6,80 +6,90 @@ library(stringr)
 args = commandArgs(trailingOnly=TRUE)
 
 #all setup within this brace: 
-{
+#{
 
 vecOfMasses = basename(args[1])
 currentDir = args[1]
 
 
+vecOfMasses = str_remove(vecOfMasses, 'merged.txt')
 print(vecOfMasses)
-myMassTest = as.numeric(vecOfMasses)
+#myMassTest = as.numeric(vecOfMasses)
 
 
 
-myMassTest = myMassTest
-myMassTest = round(myMassTest, digits = 5)
+#myMassTest = myMassTest
+#myMassTest = round(myMassTest, digits = 5)
 #print(myMassTest)
-myMassTestQuery = myMassTest
+#myMassTestQuery = myMassTest
 
 
 MassSubDirectory = currentDir
-#print(MassSubDirectory)
-#print(" is where we're going to read from")
+print(MassSubDirectory)
+print(" is where we're going to read from")
 
-File_list <- list.files(path=MassSubDirectory, full.names = TRUE)
-File_list = File_list[sapply(File_list, file.size) > 0]
 
-fullFileName = paste(currentDir, "/",  vecOfMasses,"merged.txt", sep = "")
-mergedExclude = fullFileName
+
+
+#File_list <- list.files(path=MassSubDirectory, full.names = TRUE)
+#File_list = File_list[sapply(File_list, file.size) > 0]
+
+#fullFileName = paste(currentDir, "/",  vecOfMasses,"merged.txt", sep = "")
+#mergedExclude = fullFileName
 
 #print(fullFileName)
+#manualFile = paste0(currentDir, '/', vecOfMasses, 'mergedmanually.csv')
+#if(manualFile %in% File_list)
+#{
+# print('manual file detected')
+# File_list = File_list[!File_list %in% manualFile]
+#}
 
 #print(File_list)
 #print(!(fullFileName %in% File_list))
 
 
 #simply create the merged file!
-if(!(fullFileName %in% File_list))
-{
-  
-  
-  allFiles = read.table(File_list[1], header = TRUE, sep = ",")
-  
+#if(!(fullFileName %in% File_list))
+#{
+#  
+#  print('crashing here')  
+#  allFiles = read.table(File_list[1], header = TRUE, sep = ",")
+#  
 
   #print(allFiles)
   #print(" is allFiles")
   
-  File_list = File_list[-1]
-  if(length(File_list) > 0)
-  {
-    for (j in 1:length(File_list))
-    {
-      print(j)
-      print("is j")
-      if(File_list[j] != mergedExclude)
-      {   
+#  File_list = File_list[-1]
+#  if(length(File_list) > 0)
+#  {
+#    for (j in 1:length(File_list))
+#    {
+      #print(j)
+      #print("is j")
+#      if(File_list[j] != mergedExclude)
+#      {   
         
-        oneFile = read.table(File_list[j], header = TRUE, sep = ",")
+#        oneFile = read.table(File_list[j], header = TRUE, sep = ",")
         #print(head(oneFile))
-        allFiles = rbind(allFiles, oneFile)
+#        allFiles = rbind(allFiles, oneFile)
         #print(j)
         #print(myMassTest)
-      }
-    }
-  }
-  #print("we're writing the output now")
+#      }
+#    }
+# }
+#  print("finished assembling merged file")
   #write to the temp table
   
-  write.table(allFiles, file=fullFileName, row.names = FALSE, sep = ",")
+  #write.table(allFiles, file=fullFileName, row.names = FALSE, sep = ",")
   
-}else {
+#}else {
+  print('reading merged file')  
+  allFiles = read.table(MassSubDirectory, header = TRUE, sep = ",")
   
-  allFiles = read.table(fullFileName, header = TRUE, sep = ",")
-  
-}	
+#}	
 
-}
+#}
 
 
 
@@ -318,8 +328,8 @@ generalizeWarping <- function(metabolitePlotFull)
     #print(paste(maxReference, "is MaxReference"))
     for (i in 1:length(unique(metabolitePlot$File)))
     {
-      print(i)
-      if (i != maxReference)
+      #print(i)
+      if (unique(metabolitePlot$File)[i] != maxReference)
       {
         metabolitePlotSlice2 = metabolitePlot[metabolitePlot$File == unique(metabolitePlot$File)[i], ]
         metabolitePlotSlice2BeforeFilter = metabolitePlotSlice2
@@ -514,8 +524,15 @@ callAllOtherFxns = function(segment1)
 
 #pipeline for bounds goes here: outputs table where colnames are Files and first row is Intensity (first two columns are compound(Mass), rt
 #Before running, need to initialize output table:
-FileList = read.table(args[2], header = T)$x
 
+
+fileDirectory = args[2]
+
+
+print(paste('File list generating from', fileDirectory))
+
+
+FileList = list.files(fileDirectory)
 
 
 
@@ -605,10 +622,12 @@ testSignal = allFiles[allFiles$File %in% referenceFile,  ]
 
 #get the reference signals from the top 5 of the reference
 referenceSignals = mean(testSignal$scan[order(testSignal$Intensity, decreasing = TRUE)[1:5]])
-
-
+refPoints = testSignal$scan[order(testSignal$Intensity, decreasing = TRUE)[1:5]]
+refPoints = refPoints[!is.na(refPoints)]
 
 toAdjust = allFiles
+
+print('Adjusting scans now')
 
 for(i in 1:length(allFilesList))
 {
@@ -624,14 +643,19 @@ for(i in 1:length(allFilesList))
     #get the top few signals from the main file
     toQuery = allFiles[allFiles$File %in% fileName,  ]
     querySignals = mean(toQuery$scan[order(toQuery$Intensity, decreasing = TRUE)[1:5]])
+    queryPoints = toQuery$scan[order(toQuery$Intensity, decreasing = TRUE)[1:5]]
     
+    queryPoints = queryPoints[!is.na(queryPoints)]
+    if(length(queryPoints) > 4 & length(refPoints) > 4) {
+      result = t.test(refPoints, queryPoints)$p.value
+      if(result <= .05) {
+        differenceFromReference = referenceSignals -  querySignals
+        #print(differenceFromReference)
     
-    differenceFromReference = referenceSignals -  querySignals
-    #print(differenceFromReference)
-    
-    #adjust the scans now
-    toAdjust[toAdjust$File == fileName,]$scan =  toAdjust[toAdjust$File == fileName,]$scan - differenceFromReference
-    
+        #adjust the scans now
+        toAdjust[toAdjust$File == fileName,]$scan =  toAdjust[toAdjust$File == fileName,]$scan + differenceFromReference
+      }
+    }
   }
   
 }
@@ -640,6 +664,8 @@ for(i in 1:length(allFilesList))
 toAdjust = na.omit(toAdjust)
 
 correlatedRegions = boundaryFinder(toAdjust)
+
+print('bounds found')
 
 bounds = list()
 
@@ -669,7 +695,7 @@ vecOfStartsFinal <- listOfFinalBounds[[1]]
 vecOfStopsFinal <- listOfFinalBounds[[2]]
 
 
-table1Original = allFiles
+table1Original = toAdjust
 
 
 #print(head(table1Original))
@@ -690,7 +716,7 @@ if(!(is.numeric(vecOfStopsFinal))){
 #in order to call the signal for the mass feature and add it to the table
 for(i in 1:length(vecOfStartsFinal))
 {
-  
+  #print(i)
   start1 = vecOfStartsFinal[i]
   stop1 =  vecOfStopsFinal[i]
 
@@ -717,44 +743,46 @@ for(i in 1:length(vecOfStartsFinal))
     
     #only use anovalign if actually a large signal that could show high drift
     #if there isn't really any signal there, anyways, we'll just add up the signal
-    if(nrow(segment1) > 100)
-    {
-      segment1 = generalizeWarping(segment1)
-    }
+    # if(nrow(segment1) > 100)
+    # {
+      #segment1 = generalizeWarping(segment1)
+    # }
     #run anovAlign on the segment now! We want to re-run boundary finder here to get tighter bounds
     
-    segment1$scan = round(segment1$scan)
+    # segment1$scan = round(segment1$scan)
     
-    segment1 = na.omit(segment1)
-    bounds = boundaryFinder(segment1)
+    # segment1 = na.omit(segment1)
+    # bounds = boundaryFinder(segment1)
    
     #if don't improve bounds (if they end up as zero), keep the old ones
-    if(length(bounds[[1]]) == 0)
-    {
-      bounds[[1]] = start1
-    }
-    
-    if(length(bounds[[2]]) == 0)
-    {
-      bounds[[2]] = stop1
-    }
-    
-    
-    bounds = boundCollapser(bounds[[1]], bounds[[2]])
+    # if(length(bounds[[1]]) == 0)
+    # {
+    #   bounds[[1]] = start1
+    # }
+    # 
+    # if(length(bounds[[2]]) == 0)
+    # {
+    #   bounds[[2]] = stop1
+    # }
     
     
-    if( abs(bounds[[2]] - (bounds[[1]]) < 100 ))
-    {
-      bounds[[1]] = start1  
-      bounds[[2]] = stop1   
-    }
-    
-    segment1 = segment1[segment1$scan > bounds[[1]] & segment1$scan < bounds[[2]],]
-    anovalignLeftBound = bounds[[1]][i]
-    anovalignRightBound = bounds[[2]][i]
+    # bounds = boundCollapser(bounds[[1]], bounds[[2]])
     
     
+    # if( abs(bounds[[2]] - (bounds[[1]]) < 100 ))
+    # {
+    #   bounds[[1]] = start1  
+    #   bounds[[2]] = stop1   
+    # }
+    
+    # segment1 = segment1[segment1$scan > bounds[[1]] & segment1$scan < bounds[[2]],]
+    # anovalignLeftBound = bounds[[1]][i]
+    # anovalignRightBound = bounds[[2]][i]
+    
+    print('summing signal now')
     tableForRegion = callAllOtherFxns(segment1)
+    print(head(tableForRegion))
+    print(paste0('here is the table for iteration ', i))
     allInfoTableallFiles = rbind(allInfoTableallFiles,tableForRegion)
   }
 }
@@ -762,7 +790,7 @@ for(i in 1:length(vecOfStartsFinal))
 
 
 write.csv(allInfoTableallFiles, file =paste(args[3], "/", vecOfMasses[1], ".txt", sep = ""), row.names=F)
-
+print('successfully wrote output!')
 
 
 
