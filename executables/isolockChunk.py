@@ -4,6 +4,10 @@ import sys, getopt
 from functools import reduce
 import yaml
 import os.path
+import time
+
+startTime = time.perf_counter()
+print(startTime, 'is start')
 
 theCommands = sys.argv[1]
 testFile = theCommands.split(',')
@@ -76,3 +80,21 @@ for i in range(65, 1205, 5):
 #vaexOpenWrite=vaexOpen + "newColumn_plate.hdf5"
 	if len(sub) != 0:
 		sub.export_hdf5(outputPathChunk)
+
+
+stop = time.perf_counter()
+print(stop, 'is stop')
+
+
+timeOut = outputPath.replace('hdf5FilesNewColumn', 'runTimes')
+print(timeOut, 'is where runtime will go')
+
+
+runTime = stop - startTime
+runTime = str(runTime)
+print(runTime)
+
+with open(timeOut + '/hdf5FilesNewColumn/perJob/jobRuntime' + os.path.basename(vaexOpen), 'w') as f:
+	f.write(runTime + ' \n')
+	f.close()
+

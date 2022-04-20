@@ -5,8 +5,10 @@ import os
 import numpy
 import pathlib
 import functools
+import time
 
-print('hello')
+
+timeStart = time.perf_counter()
 
 fPath = sys.argv[1]
 print(fPath)
@@ -26,7 +28,7 @@ testMasses = testMasses.split(',')
 
 #os.remove(mPath)
 
-#polarity = sys.argv[4]
+polarity = sys.argv[4]
 
 
 
@@ -35,8 +37,8 @@ testMasses = testMasses.split(',')
 
 
 
-print(fileRead[0:3])
-print(testMasses[0:3])
+#print(fileRead[0:3])
+#print(testMasses[0:3])
 
 dv = vaex.open_many(fileRead)
 
@@ -66,4 +68,24 @@ for i in testMasses:
 	#print("is what we are printing")
 	#print(len(subsetChromatogramII))
 	if len(subsetChromatogramII) > 0:
-		subsetChromatogramII.export_csv(path=fullName, parallel=False, chunk_size=12500)
+		subsetChromatogramII.export_csv(path=fullName, parallel=False)
+
+timeStop = time.perf_counter()
+
+runTime = str(timeStop - timeStart)
+
+timeOut = sys.argv[3]
+
+if polarity != 'negative':
+	timeOut = timeOut.replace('tempFilesPositive', 'runTimes')
+	with open(timeOut + '/tempFilesPositive/perJob/jobRuntime' + str(i) + '.txt', 'w') as f:
+		f.write(runTime + ' \n')
+		f.close()
+
+if polarity != 'positive':
+	timeOut = timeOut.replace('tempFilesNegative', 'runTimes')
+	with open(timeOut + '/tempFilesNegative/perJob/jobRuntime' + str(i) + '.txt', 'w') as f:
+		f.write(runTime + ' \n')
+		f.close()
+
+

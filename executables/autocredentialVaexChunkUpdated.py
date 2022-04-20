@@ -4,6 +4,11 @@ import sys
 from functools import reduce
 import pandas as pd
 import os
+import time
+
+
+
+timeStart = time.perf_counter()
 
 #Data import
 path = sys.argv[2]
@@ -17,9 +22,9 @@ polarity = sys.argv[1]
 
 iterator = int(sys.argv[5])
 
-start = iterator - 101
+start = iterator - 6.1
 
-stop = iterator + 1
+stop = iterator + 1.1
 
 
 search = 'chunk' + str(iterator) + 'iso'
@@ -103,3 +108,22 @@ if str(polarity) != "positive":
 			for item in isoIntersect:
 				f.write("%s\n" % item)
 
+
+
+timeStop = time.perf_counter()
+
+runTime = str(timeStop - timeStart)
+
+
+if str(polarity) != "negative":
+	timeOut = outputPathPositive.replace('autocredentialPositive', 'runTimes')
+	with open(timeOut + '/autocredentialPositive/perJob/jobRuntime' + str(iterator) + '.txt', 'w') as f:
+		f.write(runTime + ' \n')
+		f.close()
+
+	
+if str(polarity) != "positive":
+	timeOut = outputPathPositive.replace('autocredentialPositive', 'runTimes')
+	with open(timeOut + '/autocredentialNegative/perJob/jobRuntime' + str(iterator) + '.txt', 'w') as f:
+		f.write(runTime + ' \n')
+		f.close()

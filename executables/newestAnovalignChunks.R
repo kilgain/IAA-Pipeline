@@ -2,6 +2,7 @@ library(data.table)
 library(dplyr)
 library(stringr)
 
+startTime = Sys.time()
 
 args = commandArgs(trailingOnly=TRUE)
 
@@ -532,7 +533,7 @@ fileDirectory = args[2]
 print(paste('File list generating from', fileDirectory))
 
 
-FileList = list.files(fileDirectory)
+FileList = read.table(fileDirectory)$V1
 
 
 
@@ -792,5 +793,25 @@ for(i in 1:length(vecOfStartsFinal))
 write.csv(allInfoTableallFiles, file =paste(args[3], "/", vecOfMasses[1], ".txt", sep = ""), row.names=F)
 print('successfully wrote output!')
 
+stopTime = Sys.time()
+
+runTime = as.numeric(stopTime - startTime)
+
+timeOut = args[3]
+polarity = args[4]
+
+if(polarity != 'negative') {
+	timeOut = str_replace(timeOut, 'vecOfIntensitiesForEachMassPositive', 'runTimes')
+	timeOut = paste0(timeOut, paste0('/vecOfIntensitiesForEachMassPositive/perJob/jobRuntime', vecOfMasses, '.txt'))
+	write.table(runTime, timeOut)
+}
+
+if(polarity != 'positive') {
+
+	timeOut = str_replace(timeOut, 'vecOfIntensitiesForEachMassNegative', 'runTimes')
+	timeOut = paste0(timeOut, paste0('/vecOfIntensitiesForEachMassNegative/perJob/jobRuntime', vecOfMasses, '.txt'))
+	write.table(runTime, timeOut)
+
+}
 
 
